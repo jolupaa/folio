@@ -27,7 +27,7 @@ A new Flutter FFI plugin project.
   s.swift_version = '5.0'
 
   # llama.cpp (Metal) y SQLite se enlazan estáticamente: sus dependencias del sistema van aquí.
-  s.frameworks = 'Foundation', 'Metal', 'MetalKit', 'Accelerate', 'Security'
+  s.frameworks = 'Foundation', 'CoreFoundation', 'CFNetwork', 'Metal', 'MetalKit', 'Accelerate', 'Security'
   s.libraries = 'c++'
 
   s.script_phase = {
