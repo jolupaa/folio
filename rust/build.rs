@@ -30,4 +30,36 @@ fn main() {
         }
         None => println!("cargo:warning=no se encontró la biblioteca de soporte de clang ({lib})"),
     }
+
+    link_httplib();
+}
+
+/// Xcode enlaza `libfolio_bridge.a` con `-force_load`, que carga todos los objetos, también el
+/// código de descargas de llama.cpp (`common/download.cpp`) que la app no usa pero que referencia
+/// cpp-httplib. llama-cpp-sys-2 compila esa biblioteca y no la enlaza: se añade aquí para que
+/// quede dentro de la biblioteca estática.
+fn link_httplib() {
+    let Some(out) = std::env::var_os("OUT_DIR").map(std::path::PathBuf::from) else { return };
+    // OUT_DIR = <target>/<triple>/<perfil>/build/folio_bridge-<hash>/out
+    let Some(build_dir) = out.parent().and_then(|p| p.parent()) else { return };
+    let mut found: Vec<(std::time::SystemTime, std::path::PathBuf)> = Vec::new();
+    if let Ok(entries) = std::fs::read_dir(build_dir) {
+        for e in entries.flatten() {
+            if !e.file_name().to_string_lossy().starts_with("llama-cpp-sys-2-") {
+                continue;
+            }
+            let dir = e.path().join("out/build/vendor/cpp-httplib");
+            if let Ok(meta) = std::fs::metadata(dir.join("libcpp-httplib.a")) {
+                found.push((meta.modified().unwrap_or(std::time::UNIX_EPOCH), dir));
+            }
+        }
+    }
+    found.sort();
+    match found.pop() {
+        Some((_, dir)) => {
+            println!("cargo:rustc-link-search=native={}", dir.display());
+            println!("cargo:rustc-link-lib=static=cpp-httplib");
+        }
+        None => println!("cargo:warning=no se encontró libcpp-httplib.a de llama.cpp"),
+    }
 }
