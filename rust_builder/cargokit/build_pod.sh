@@ -13,6 +13,13 @@ export PATH=${NEW_PATH%?} # remove trailing :
 
 env
 
+# Folio: rustc enlaza con el objetivo de despliegue de esta variable. llama.cpp necesita iOS 13+
+# (`___chkstk_darwin`); se fija al mínimo de la app sea cual sea el valor que exporte el pod.
+# (rust/.cargo/config.toml no se lee aquí: cargo se lanza con --manifest-path desde otra carpeta.)
+case "$PLATFORM_NAME" in
+  iphone*) export IPHONEOS_DEPLOYMENT_TARGET=16.0 ;;
+esac
+
 # Platform name (macosx, iphoneos, iphonesimulator)
 export CARGOKIT_DARWIN_PLATFORM_NAME=$PLATFORM_NAME
 
