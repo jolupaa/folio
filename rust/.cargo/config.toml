@@ -1,0 +1,4 @@
+# iOS: sin esto rustc enlaza para iOS 10.0 y falla con `___chkstk_darwin` (existe desde iOS 13),
+# que usa el código C++ de llama.cpp. Debe coincidir con el objetivo del Podfile (16.0).
+[env]
+IPHONEOS_DEPLOYMENT_TARGET = "16.0"
