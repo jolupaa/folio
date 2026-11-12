@@ -23,8 +23,10 @@ fn main() {
     });
     match dir {
         Some(d) => {
-            println!("cargo:rustc-link-search=native={d}");
-            println!("cargo:rustc-link-lib=static={lib}");
+            // Es un archivo universal (varias arquitecturas): rustc no sabe incrustarlo, así que
+            // se pasa tal cual al enlazador, y solo para la biblioteca dinámica (en la estática
+            // lo añade Xcode al enlazar la app).
+            println!("cargo:rustc-cdylib-link-arg={d}/lib{lib}.a");
         }
         None => println!("cargo:warning=no se encontró la biblioteca de soporte de clang ({lib})"),
     }
