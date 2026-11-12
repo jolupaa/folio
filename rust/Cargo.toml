@@ -1,0 +1,30 @@
+[package]
+name = "folio_bridge"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+crate-type = ["cdylib", "staticlib"]
+
+[dependencies]
+flutter_rust_bridge = "=2.13.0"
+anyhow = "1"
+folio_core = { path = "crates/folio_core" }
+folio_ai = { path = "crates/folio_ai" }
+
+[workspace]
+members = [".", "crates/folio_core", "crates/folio_ai"]
+resolver = "2"
+
+[profile.release]
+opt-level = 3
+lto = "thin"
+codegen-units = 4
+strip = "debuginfo"
+
+[profile.dev.package."*"]
+# llama.cpp y SQLite son muy lentos sin optimizar incluso en debug.
+opt-level = 2
+
+[lints.rust]
+unexpected_cfgs = { level = "warn", check-cfg = ['cfg(frb_expand)'] }
