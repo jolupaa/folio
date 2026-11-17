@@ -245,8 +245,9 @@ pub fn build_content(
             let fin = finalize_answer(raw, &|n| allowed.contains(&n));
             anyhow::ensure!(!fin.insufficient, "Las fuentes seleccionadas no contienen información suficiente.");
             all.extend(fin.used.iter().copied());
-            let content = json!({"format": "markdown", "text": fin.text, "detail": options.detail.as_str()});
-            Ok((content, all, fin.text))
+            let text = crate::text::plain_math(&fin.text);
+            let content = json!({"format": "markdown", "text": text, "detail": options.detail.as_str()});
+            Ok((content, all, text))
         }
         StudyKind::Flashcards => {
             let v = parse_json_lenient(raw)?;
@@ -373,5 +374,13 @@ mod tests {
         assert!(v["text"].as_str().unwrap().contains("Algo [1]"));
         assert!(!v["text"].as_str().unwrap().contains("[7]"));
         assert_eq!(used.into_iter().collect::<Vec<_>>(), vec![1]);
+    }
+
+    #[test]
+    fn markdown_materials_have_latex_turned_into_plain_text() {
+        let allowed: BTreeSet<u32> = [1].into_iter().collect();
+        let (v, _, shown) = build_content(StudyKind::Skill, &opts(), 5, r"- **Caída libre**: $g = 9,8 \text{ m/s}^2$ [1]", &allowed).unwrap();
+        assert_eq!(v["text"], "- **Caída libre**: g = 9,8 m/s² [1]");
+        assert_eq!(shown, "- **Caída libre**: g = 9,8 m/s² [1]");
     }
 }

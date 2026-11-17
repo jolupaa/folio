@@ -36,7 +36,7 @@ pub const SKILLS: &[StudySkill] = &[
         description: "Con palabras sencillas, una analogía y preguntas para comprobarlo",
         icon: "lightbulb",
         writing: "Preparando la explicación…",
-        task: "Explica el contenido de las fuentes como si se lo contaras a alguien de 12 años que no sabe nada del tema. Usa palabras cotidianas; si necesitas un término técnico, defínelo en una frase. No uses relleno como «simplemente» u «obviamente». Escribe en Markdown con estas secciones, en este orden:\n## La idea en una frase\n## Explicación sencilla\n## Una analogía\n## Palabras clave\n## Comprueba que lo entiendes\nEn «Una analogía» compara con algo cotidiano sin añadir datos nuevos. En «Palabras clave» usa el formato «- **término**: definición sencilla [n]». En «Comprueba que lo entiendes» escribe 3 preguntas.",
+        task: "Explica el contenido de las fuentes como si se lo contaras a alguien de 12 años que no sabe nada del tema. Usa palabras cotidianas; si necesitas un término técnico, defínelo en una frase. No uses relleno como «simplemente» u «obviamente». Escribe en Markdown con estas secciones, en este orden:\n## La idea en una frase\n## Explicación sencilla\n## Una analogía\n## Palabras clave\n## Comprueba que lo entiendes\nEn «Una analogía» compara con algo cotidiano que funcione igual que lo que dicen las fuentes, sin añadir datos. En «Palabras clave» usa el formato «- **término**: definición sencilla [n]». En «Comprueba que lo entiendes» escribe 3 preguntas que se respondan con las fuentes.",
         max_tokens: 900,
     },
     // wentorai/research-plugins «academic-study-methods» (MIT): Cornell + interrogación elaborativa.
@@ -47,7 +47,7 @@ pub const SKILLS: &[StudySkill] = &[
         description: "Preguntas clave con sus respuestas y un resumen para repasar de memoria",
         icon: "cornell",
         writing: "Escribiendo las notas Cornell…",
-        task: "Crea apuntes con el método Cornell en Markdown. Para cada tema importante escribe un encabezado «### ¿…?» con una pregunta clave (usa «¿por qué…?» o «¿cómo…?» cuando se pueda) y debajo viñetas breves que la respondan, cada una con su cita [n]. Escribe entre 4 y 8 preguntas. Termina con la sección «## Resumen»: tres o cuatro frases con lo esencial.",
+        task: "Crea apuntes con el método Cornell en Markdown. Para cada tema importante escribe un encabezado «### ¿…?» con una pregunta clave (usa «¿por qué…?» o «¿cómo…?» cuando se pueda) y debajo viñetas breves que la respondan, cada una con su cita [n]. Escribe entre 4 y 8 preguntas. Usa solo lo que dicen las fuentes. Termina con una línea «## Resumen» (solo dos #) y debajo tres o cuatro frases con lo esencial.",
         max_tokens: 1100,
     },
     // Evan715823/cheatsheet-generator-skill (MIT), sin LaTeX.
@@ -58,7 +58,7 @@ pub const SKILLS: &[StudySkill] = &[
         description: "Lo imprescindible en una página: definiciones, fórmulas y datos",
         icon: "cheatsheet",
         writing: "Preparando la chuleta…",
-        task: "Crea una CHULETA DE EXAMEN en Markdown: lo imprescindible para repasar justo antes del examen, lo más densa posible. Agrupa por tema con encabezados ##. Usa solo viñetas cortas, sin frases de relleno: definiciones («- **término**: definición»), fórmulas, fechas, cifras, listas y pasos. Copia las fórmulas y los datos exactamente como aparecen en las fuentes. Cita cada viñeta con [n].",
+        task: "Crea una CHULETA DE EXAMEN en Markdown: lo imprescindible para repasar justo antes del examen, lo más densa posible. Usa SOLO lo que dicen las fuentes: no añadas fórmulas, unidades ni datos que no aparezcan en ellas. Agrupa por tema con encabezados ##. Usa solo viñetas cortas, sin tablas ni frases de relleno: definiciones («- **término**: definición»), fórmulas, fechas, cifras, listas y pasos. Escribe las fórmulas como texto normal (F = m·a), sin LaTeX ni signos $. Cita cada viñeta con [n].",
         max_tokens: 1100,
     },
 ];

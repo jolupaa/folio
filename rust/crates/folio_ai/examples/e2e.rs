@@ -137,7 +137,19 @@ fn main() -> anyhow::Result<()> {
         let item = store::get_study_item(&core.db.read(), ev.result_id.as_ref().unwrap())?;
         store::validate_content(kind, &item.content_json)?;
         let v: serde_json::Value = serde_json::from_str(&item.content_json)?;
-        println!("{}\n", serde_json::to_string_pretty(&v).unwrap().chars().take(1800).collect::<String>());
+        match kind {
+            StudyKind::Flashcards => {
+                for c in v["cards"].as_array().into_iter().flatten() {
+                    println!("   [tarjeta] {} → {}", c["front"], c["back"]);
+                }
+            }
+            StudyKind::Quiz => {
+                for q in v["questions"].as_array().into_iter().flatten() {
+                    println!("   [{}] {} {} ✓{} | {}", q["kind"], q["question"], q["options"], q["answer_index"], q["reference_answer"]);
+                }
+            }
+            _ => println!("{}\n", v["text"].as_str().unwrap_or("")),
+        }
         if kind == StudyKind::Quiz {
             if let Some(q) = v["questions"].as_array().unwrap().iter().find(|q| q["kind"] == "open") {
                 let g = run("corrección de respuesta abierta", |s| {
@@ -146,6 +158,34 @@ fn main() -> anyhow::Result<()> {
                 println!("{}\n", g.text);
             }
         }
+    }
+    // Técnicas de estudio: cada una debe seguir su estructura y citar las fuentes.
+    for (skill, expected) in [
+        ("feynman", &["## La idea en una frase", "## Explicación sencilla", "## Palabras clave"][..]),
+        ("cornell", &["¿", "## Resumen"][..]),
+        ("cheatsheet", &["## "][..]),
+    ] {
+        let o = StudyOptions { skill: Some(skill.into()), ..opts(DetailLevel::Brief, 5, QuizMix::Mixed) };
+        let t = Instant::now();
+        let ev = run(&format!("técnica {skill} de Física"), |s| {
+            ai.generate_study(StudyKind::Skill, folder(&fis.id), o, s).unwrap();
+        });
+        anyhow::ensure!(ev.kind == AiEventKind::Done, "{skill}: {}", ev.text);
+        let item = store::get_study_item(&core.db.read(), ev.result_id.as_ref().unwrap())?;
+        let v: serde_json::Value = serde_json::from_str(&item.content_json)?;
+        let text = v["text"].as_str().unwrap_or("");
+        println!("--- {} ({:.1}s) ---\n{text}\n   citas: {:?}\n", item.title, t.elapsed().as_secs_f64(), ev.citations.iter().map(|c| c.n).collect::<Vec<_>>());
+        for h in expected {
+            anyhow::ensure!(text.contains(h), "{skill}: falta «{h}»");
+        }
+        if skill == "cornell" {
+            let questions = text.lines().filter(|l| l.starts_with("### ¿") || l.starts_with("**¿")).count();
+            anyhow::ensure!(questions >= 3, "cornell: solo {questions} preguntas clave");
+        }
+        if skill == "cheatsheet" {
+            anyhow::ensure!(!text.contains('$'), "cheatsheet: fórmulas en LaTeX");
+        }
+        anyhow::ensure!(!ev.citations.is_empty(), "{skill}: sin citas");
     }
     println!("E2E OK");
     Ok(())
