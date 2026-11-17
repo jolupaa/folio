@@ -166,12 +166,19 @@ pub fn migrate(conn: &mut Connection) -> anyhow::Result<u32> {
     Ok(SCHEMA_VERSION)
 }
 
+fn fk_violations(conn: &Connection) -> rusqlite::Result<i64> {
+    conn.query_row("SELECT count(*) FROM pragma_foreign_key_check", [], |r| r.get(0))
+}
+
 fn apply_pending(conn: &mut Connection, current: u32) -> anyhow::Result<()> {
     for (version, sql) in MIGRATIONS.iter().filter(|(v, _)| *v > current) {
         let tx = conn.transaction()?;
+        // Solo cuentan las referencias rotas que añada la migración: una antigua no debe impedir
+        // abrir la base de datos tras actualizar la app.
+        let before = fk_violations(&tx)?;
         tx.execute_batch(sql).with_context(|| format!("migración {version}"))?;
-        let broken: i64 = tx.query_row("SELECT count(*) FROM pragma_foreign_key_check", [], |r| r.get(0))?;
-        anyhow::ensure!(broken == 0, "migración {version}: claves foráneas rotas ({broken})");
+        let after = fk_violations(&tx)?;
+        anyhow::ensure!(after <= before, "migración {version}: claves foráneas rotas ({before} → {after})");
         tx.pragma_update(None, "user_version", version)?;
         tx.commit()?;
         log::info!("migración {version} aplicada");
@@ -252,6 +259,25 @@ mod tests {
         conn.execute("DELETE FROM study_items WHERE id='s1'", []).unwrap();
         assert_eq!(count("SELECT count(*) FROM study_item_sources"), 0);
         assert_eq!(count("SELECT count(*) FROM quiz_attempts"), 0);
+    }
+
+    /// Una referencia rota que ya existía antes (no la causa la migración) no debe impedir abrir
+    /// la base de datos tras actualizar la app.
+    #[test]
+    fn migration_tolerates_preexisting_foreign_key_violations() {
+        let dir = tempfile::tempdir().unwrap();
+        let mut conn = Connection::open(dir.path().join("v1.sqlite3")).unwrap();
+        conn.execute_batch(include_str!("../migrations/0001_init.sql")).unwrap();
+        conn.pragma_update(None, "user_version", 1).unwrap();
+        conn.execute_batch(
+            "PRAGMA foreign_keys = OFF;
+             INSERT INTO quiz_attempts(id,study_id,answers,created_at) VALUES ('a1','fantasma','[]',1);
+             PRAGMA foreign_keys = ON;",
+        )
+        .unwrap();
+        assert_eq!(migrate(&mut conn).unwrap(), 2);
+        let n: i64 = conn.query_row("SELECT count(*) FROM quiz_attempts", [], |r| r.get(0)).unwrap();
+        assert_eq!(n, 1, "la migración no borra datos");
     }
 
     #[test]

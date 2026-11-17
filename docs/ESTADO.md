@@ -9,7 +9,7 @@ Fecha: 2026-11-17 (técnicas de estudio; el resto, 2026-11-12). Distingue **comp
 | Compilación | APK Android debug x86_64 (Flutter + Rust + llama.cpp + ML Kit) | Compila |
 | Compilación | `libfolio_bridge.so` arm64-v8a release (cargo-ndk) | Compila, 16,8 MB, sin `libc++_shared` |
 | Compilación | iOS | **No compilado** (no hay Xcode en Linux) |
-| Tests Rust | `cargo test --workspace` | 78 pasan (núcleo 36, IA 42) |
+| Tests Rust | `cargo test --workspace` | 79 pasan (núcleo 37, IA 42) |
 | Tests Dart | `flutter test` | 55 pasan (códec de bloques, barra de búsqueda, formato, técnicas de estudio) |
 | Análisis | `flutter analyze` | 0 errores, 0 avisos (20 sugerencias de estilo previas) |
 | Host, modelo real | `cargo run --release -p folio_ai --example e2e` | Pasa con Qwen3.5-2B + Qwen3-Embedding, incluidas las 3 técnicas de estudio |
@@ -34,7 +34,7 @@ Fecha: 2026-11-17 (técnicas de estudio; el resto, 2026-11-12). Distingue **comp
   ausente (error claro, nada guardado), fuentes sin datos, edición, id retirado del catálogo,
   fórmulas LaTeX convertidas en texto.
 - **Migración 2** desde una BD v1 con materiales, fuentes e intentos: no se pierde nada y la cascada
-  sigue funcionando.
+  sigue funcionando; una referencia rota antigua no bloquea la actualización.
 - **Modelos**: descarga, pausa, reanudación con Range, cancelación, SHA-256 incorrecto, espacio
   insuficiente, servidor caído; modelo ausente → mensaje claro.
 - **Modo avión** (emulador): tras descargar los modelos desde la app, pregunta y resumen sin red.
