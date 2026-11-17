@@ -27,10 +27,13 @@ class StudyItemScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final item = ref.watch(studyItemProvider(studyId));
     final value = item.value;
+    final skills = ref.watch(studySkillsProvider);
     return Scaffold(
       appBar: AppBar(
         title: Text(
-          value == null ? 'Material de estudio' : (value.title.isEmpty ? studyKindLabel(value.kind) : value.title),
+          value == null
+              ? 'Material de estudio'
+              : (value.title.isEmpty ? studyDisplay(value.kind, value.skill, skills).label : value.title),
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
         ),

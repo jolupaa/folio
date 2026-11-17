@@ -21,14 +21,6 @@ import 'study_labels.dart';
 class StudyListScreen extends ConsumerWidget {
   const StudyListScreen({super.key});
 
-  static const kindOrder = [
-    StudyKind.summary,
-    StudyKind.outline,
-    StudyKind.keyConcepts,
-    StudyKind.flashcards,
-    StudyKind.quiz,
-  ];
-
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final items = ref.watch(studyItemsProvider);
@@ -75,13 +67,7 @@ class StudyListScreen extends ConsumerWidget {
         onAction: () => showAiActions(context, scope: Scopes.library),
       );
     }
-    final byKind = <StudyKind, List<StudyItemSummary>>{};
-    for (final it in list) {
-      byKind.putIfAbsent(it.kind, () => []).add(it);
-    }
-    for (final l in byKind.values) {
-      l.sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
-    }
+    final groups = groupStudyItems(list, ref.watch(studySkillsProvider));
     return RefreshIndicator(
       onRefresh: () async {
         ref.read(studyRevisionProvider.notifier).bump();
@@ -91,12 +77,11 @@ class StudyListScreen extends ConsumerWidget {
       child: ListView(
         padding: const EdgeInsets.only(bottom: Insets.xxl),
         children: [
-          for (final k in kindOrder)
-            if (byKind[k]?.isNotEmpty ?? false)
-              GroupedSection(
-                header: studyKindSection(k),
-                children: [for (final it in byKind[k]!) _StudyRow(item: it)],
-              ),
+          for (final g in groups)
+            GroupedSection(
+              header: g.header,
+              children: [for (final it in g.items) _StudyRow(item: it)],
+            ),
           if (threads.hasError && !threads.hasValue)
             GroupedSection(
               header: 'Conversaciones',
@@ -162,6 +147,7 @@ class _StudyRow extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final count = studyItemCount(item.kind, item.itemCount);
+    final display = studyDisplay(item.kind, item.skill, ref.watch(studySkillsProvider));
     final subtitle = [
       if (item.scopeLabel.isNotEmpty) item.scopeLabel,
       if (count.isNotEmpty) count,
@@ -169,12 +155,8 @@ class _StudyRow extends ConsumerWidget {
     ].join(' · ');
     return ListTile(
       minTileHeight: 68,
-      leading: Icon(studyKindIcon(item.kind)),
-      title: Text(
-        item.title.isEmpty ? studyKindLabel(item.kind) : item.title,
-        maxLines: 2,
-        overflow: TextOverflow.ellipsis,
-      ),
+      leading: Icon(display.icon),
+      title: Text(item.title.isEmpty ? display.label : item.title, maxLines: 2, overflow: TextOverflow.ellipsis),
       subtitle: Text(subtitle, maxLines: 2, overflow: TextOverflow.ellipsis),
       onTap: () => context.push('/study/${item.id}'),
       onLongPress: () => _rename(context, ref),

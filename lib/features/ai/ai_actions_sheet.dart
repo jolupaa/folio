@@ -9,6 +9,8 @@ import '../../src/rust/api/types.dart';
 import 'ai_availability.dart';
 import 'ai_scope.dart';
 import 'generation_sheet.dart';
+import '../study/study_gateway.dart' show studySkillsProvider;
+import '../study/study_labels.dart' show skillIcon;
 import 'source_picker.dart';
 
 /// Lo que el usuario eligió en la hoja de acciones de IA.
@@ -87,7 +89,14 @@ class _AiActionsSheetState extends ConsumerState<AiActionsSheet> {
     Navigator.pop(context, AskResult(_scope, q));
   }
 
-  void _generate(StudyKind kind, String label, {DetailLevel detail = DetailLevel.brief, int? count, QuizMix? mix}) {
+  void _generate(
+    StudyKind kind,
+    String label, {
+    DetailLevel detail = DetailLevel.brief,
+    int? count,
+    QuizMix? mix,
+    String? skill,
+  }) {
     Navigator.pop(
       context,
       StudyResult(
@@ -95,7 +104,12 @@ class _AiActionsSheetState extends ConsumerState<AiActionsSheet> {
           kind: kind,
           scope: _scope,
           label: label,
-          options: StudyOptions(detail: detail, count: count ?? quizCountRange.initial, quizMix: mix ?? QuizMix.mixed),
+          options: StudyOptions(
+            detail: detail,
+            count: count ?? quizCountRange.initial,
+            quizMix: mix ?? QuizMix.mixed,
+            skill: skill,
+          ),
         ),
       ),
     );
@@ -122,6 +136,7 @@ class _AiActionsSheetState extends ConsumerState<AiActionsSheet> {
     final options = ref.watch(scopeOptionsProvider(ScopeRef(widget.scope)));
     final summary = ref.watch(scopeSummaryProvider(ScopeRef(_scope)));
     final status = ref.watch(aiStatusProvider);
+    final skills = ref.watch(studySkillsProvider);
     final availability = status.whenOrNull(data: availabilityOf);
     final ready = availability == AiAvailability.ready;
     final summaryValue = summary.value;
@@ -357,6 +372,20 @@ class _AiActionsSheetState extends ConsumerState<AiActionsSheet> {
                     label: Text('Crear cuestionario de $_quizCount'),
                   ),
                 ],
+              ),
+            // ── Técnicas de estudio (catálogo de Rust) ──
+            if (skills.isNotEmpty)
+              Padding(
+                padding: const EdgeInsets.fromLTRB(Insets.gutter, Insets.md, Insets.gutter, Insets.xs),
+                child: Semantics(header: true, child: Text('Técnicas de estudio', style: context.text.labelMedium)),
+              ),
+            for (final s in skills)
+              _ActionTile(
+                icon: skillIcon(s.icon),
+                title: s.name,
+                subtitle: s.description,
+                enabled: enabled,
+                onTap: () => _generate(StudyKind.skill, s.name, skill: s.id),
               ),
           ],
         ),
