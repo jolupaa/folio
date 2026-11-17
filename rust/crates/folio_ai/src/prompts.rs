@@ -12,6 +12,12 @@ const ASK_SYSTEM: &str = "Eres Folio, un asistente de estudio. Respondes ÚNICAM
 
 const STUDY_SYSTEM: &str = "Eres Folio, un asistente de estudio. Trabajas ÚNICAMENTE con las FUENTES numeradas que te da el usuario.\nReglas:\n1. Cita con el número de la fuente entre corchetes, por ejemplo [1] o [2][3].\n2. No inventes datos ni uses conocimientos externos.\n3. Escribe en el idioma de las fuentes.";
 
+/// Reglas de redacción de tarjetas (SuperMemo, «20 reglas»: información mínima y huecos).
+const FLASHCARD_RULES: &str = "Cada tarjeta pregunta UNA sola idea. Mezcla definiciones con preguntas de «¿por qué?» o «¿cómo?». Puedes incluir tarjetas de completar: en \"front\" la frase con un hueco «____» y en \"back\" la palabra que falta.";
+
+/// Reglas de redacción de preguntas de examen.
+const QUIZ_RULES: &str = "Las opciones incorrectas deben ser creíbles y del mismo tema; no uses «todas las anteriores» ni «ninguna de las anteriores». Incluye preguntas que exijan comprender o aplicar, no solo recordar.";
+
 /// Prefijo del turno del asistente con el bloque de razonamiento vacío (modo sin razonamiento).
 const ASSISTANT_OPEN: &str = "<|im_start|>assistant\n<think>\n\n</think>\n\n";
 
@@ -124,7 +130,7 @@ pub fn study_prompt(kind: StudyKind, options: &StudyOptions, count: usize, mater
         StudyKind::Outline => "Elabora un ESQUEMA jerárquico en Markdown (encabezados ## y viñetas anidadas) con la estructura de los contenidos, citando las fuentes.".to_string(),
         StudyKind::KeyConcepts => "Enumera los CONCEPTOS CLAVE en una lista Markdown con el formato «- **Concepto**: definición breve [n]».".to_string(),
         StudyKind::Flashcards => format!(
-            "Crea exactamente {count} flashcards de estudio en JSON: {{\"cards\":[{{\"front\":\"pregunta\",\"back\":\"respuesta breve con cita [n]\",\"citations\":[n]}}]}}. Cada pregunta debe poder responderse solo con las fuentes; no repitas preguntas."
+            "Crea exactamente {count} flashcards de estudio en JSON: {{\"cards\":[{{\"front\":\"pregunta\",\"back\":\"respuesta breve con cita [n]\",\"citations\":[n]}}]}}. Cada pregunta debe poder responderse solo con las fuentes; no repitas preguntas. {FLASHCARD_RULES}"
         ),
         StudyKind::Quiz => {
             let mix = match options.quiz_mix {
@@ -133,7 +139,7 @@ pub fn study_prompt(kind: StudyKind, options: &StudyOptions, count: usize, mater
                 QuizMix::Mixed => "mezclando opción múltiple (kind \"mcq\", 4 opciones, una correcta) y respuesta abierta (kind \"open\", con respuesta de referencia)",
             };
             format!(
-                "Crea un cuestionario de exactamente {count} preguntas en JSON, {mix}. En \"explanation\" justifica la respuesta correcta citando la fuente [n]. \"answer_index\" es el índice (0–3) de la opción correcta; varía su posición."
+                "Crea un cuestionario de exactamente {count} preguntas en JSON, {mix}. En \"explanation\" justifica la respuesta correcta citando la fuente [n]. \"answer_index\" es el índice (0–3) de la opción correcta; varía su posición. {QUIZ_RULES}"
             )
         }
     };
@@ -346,6 +352,17 @@ mod tests {
         // Sin técnica (no debería ocurrir): se comporta como un resumen breve.
         let fallback = study_prompt(StudyKind::Skill, &opts(), 5, "x", None);
         assert!(fallback.contains("resumen BREVE"), "{fallback}");
+    }
+
+    #[test]
+    fn flashcard_and_quiz_prompts_carry_item_writing_rules() {
+        let o = StudyOptions { skill: None, ..opts() };
+        let cards = study_prompt(StudyKind::Flashcards, &o, 5, "x", None);
+        assert!(cards.contains("UNA sola idea") && cards.contains("____"), "{cards}");
+        assert!(FLASHCARD_RULES.chars().count() <= 350);
+        let quiz = study_prompt(StudyKind::Quiz, &o, 5, "x", None);
+        assert!(quiz.contains("todas las anteriores") && quiz.contains("comprender o aplicar"), "{quiz}");
+        assert!(QUIZ_RULES.chars().count() <= 350);
     }
 
     #[test]
