@@ -447,3 +447,85 @@ fn download_cancel_bad_hash_and_no_space() {
     let end = download(&m, |_| {});
     assert_eq!(end.kind, DownloadEventKind::Failed);
 }
+
+fn skill_opts(skill: Option<&str>) -> StudyOptions {
+    StudyOptions { detail: DetailLevel::Brief, count: 5, quiz_mix: QuizMix::Mixed, title: None, skill: skill.map(String::from) }
+}
+
+#[test]
+fn skill_materials_are_generated_saved_and_listed() {
+    let engine = MockEngine::new();
+    let stats = engine.stats.clone();
+    let e = env_with(engine, true, false);
+    let f = e.core.create_folder(None, "Física").unwrap();
+    note(&e.core, Some(&f.id), "Cinemática", &["La velocidad es el cambio de posición."]);
+    for s in folio_ai::skills::SKILLS {
+        let evs = collect(|sink| {
+            e.ai.generate_study(StudyKind::Skill, scope_folder(&f.id), skill_opts(Some(s.id)), sink).unwrap();
+        });
+        let done = evs.last().unwrap();
+        assert_eq!(done.kind, AiEventKind::Done, "{}: {done:?}", s.id);
+        assert!(stats.last_prompt.lock().contains(s.task), "{}: el prompt lleva la instrucción de la técnica", s.id);
+        assert!(evs.iter().any(|ev| ev.kind == AiEventKind::Progress && ev.text == s.writing), "{}", s.id);
+        let item = store::get_study_item(&e.core.db.read(), done.result_id.as_ref().unwrap()).unwrap();
+        assert_eq!(item.kind, StudyKind::Skill);
+        assert_eq!(item.skill.as_deref(), Some(s.id));
+        assert!(item.title.starts_with(s.name) && item.title.contains("Física"), "{}", item.title);
+        store::validate_content(StudyKind::Skill, &item.content_json).unwrap();
+        let v: serde_json::Value = serde_json::from_str(&item.content_json).unwrap();
+        assert_eq!(v["format"], "markdown");
+        let text = v["text"].as_str().unwrap();
+        assert!(text.contains("[1]") && !text.contains("[99]"), "{text}");
+        assert!(v.get("skill").is_none(), "la técnica va en la columna, no en el JSON");
+    }
+    let list = store::list_study_items(&e.core.db.read(), None).unwrap();
+    let mut skills: Vec<&str> = list.iter().filter_map(|i| i.skill.as_deref()).collect();
+    skills.sort();
+    assert_eq!(skills, ["cheatsheet", "cornell", "feynman"]);
+    assert!(list.iter().all(|i| i.kind == StudyKind::Skill && i.item_count == 0));
+}
+
+#[test]
+fn skill_generation_rejects_unknown_skill_and_insufficient_sources() {
+    let e = env_with(MockEngine::new(), true, false);
+    let f = e.core.create_folder(None, "Física").unwrap();
+    note(&e.core, Some(&f.id), "Cinemática", &["La velocidad es el cambio de posición."]);
+    for bad in [None, Some("nope")] {
+        let evs = collect(|sink| {
+            e.ai.generate_study(StudyKind::Skill, scope_folder(&f.id), skill_opts(bad), sink).unwrap();
+        });
+        let last = evs.last().unwrap();
+        assert_eq!(last.kind, AiEventKind::Error, "{bad:?}: {last:?}");
+        assert!(last.text.contains("Técnica de estudio desconocida"), "{}", last.text);
+    }
+    let g = e.core.create_folder(None, "Vacía").unwrap();
+    note(&e.core, Some(&g.id), "Sin datos", &["[[sin-datos]] Nada útil."]);
+    let evs = collect(|sink| {
+        e.ai.generate_study(StudyKind::Skill, scope_folder(&g.id), skill_opts(Some("cornell")), sink).unwrap();
+    });
+    let last = evs.last().unwrap();
+    assert_eq!(last.kind, AiEventKind::Error, "{last:?}");
+    assert!(last.text.contains("no contienen información suficiente"), "{}", last.text);
+    assert!(store::list_study_items(&e.core.db.read(), None).unwrap().is_empty());
+}
+
+#[test]
+fn skill_material_survives_edit_and_unknown_catalog_id() {
+    let e = env_with(MockEngine::new(), true, false);
+    let f = e.core.create_folder(None, "Física").unwrap();
+    note(&e.core, Some(&f.id), "Cinemática", &["La velocidad es el cambio de posición."]);
+    let evs = collect(|sink| {
+        e.ai.generate_study(StudyKind::Skill, scope_folder(&f.id), skill_opts(Some("feynman")), sink).unwrap();
+    });
+    let id = evs.last().unwrap().result_id.clone().unwrap();
+    let edited = store::update_study_item(&e.core.db.write(), &id, "Mi explicación", r#"{"format":"markdown","text":"Editado [1]","citations":[]}"#).unwrap();
+    assert_eq!(edited.skill.as_deref(), Some("feynman"));
+    assert_eq!(edited.title, "Mi explicación");
+    e.core.db.write().execute("UPDATE study_items SET skill = 'retirada' WHERE id = ?1", [&id]).unwrap();
+    let list = store::list_study_items(&e.core.db.read(), None).unwrap();
+    assert_eq!(list.len(), 1);
+    assert_eq!(list[0].skill.as_deref(), Some("retirada"));
+    let item = store::get_study_item(&e.core.db.read(), &id).unwrap();
+    assert_eq!(item.kind, StudyKind::Skill);
+    assert!(item.content_json.contains("Editado"));
+}

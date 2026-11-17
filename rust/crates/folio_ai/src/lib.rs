@@ -603,6 +603,7 @@ impl Ai {
         scope: &AiScope,
         options: &StudyOptions,
     ) -> anyhow::Result<End> {
+        let skill = skills::resolve(kind, options.skill.as_deref())?;
         if self.inner.models.active_llm(&self.device()).is_none() {
             anyhow::bail!(NO_MODEL_MESSAGE);
         }
@@ -621,7 +622,7 @@ impl Ai {
         };
         let allowed: BTreeSet<u32> = citations.iter().map(|c| c.n).collect();
         let blocks: Vec<String> = chunks.iter().enumerate().map(|(i, h)| prompts::source_block(i as u32 + 1, h, &citations[i].location)).collect();
-        let max_out = prompts::max_tokens(kind, options.detail, count, None);
+        let max_out = prompts::max_tokens(kind, options.detail, count, skill);
 
         let produced = self.with_generator(task, emit, |gen, model_id| {
             let n_ctx = gen.n_ctx() as usize;
@@ -671,8 +672,8 @@ impl Ai {
                 anyhow::ensure!(!notes.is_empty(), "No se pudo extraer contenido de las fuentes");
                 notes.join("\n")
             };
-            progress(prompts::writing_message(kind, None).into(), Some(0.9));
-            let prompt = prompts::study_prompt(kind, options, count, &material, None);
+            progress(prompts::writing_message(kind, skill).into(), Some(0.9));
+            let prompt = prompts::study_prompt(kind, options, count, &material, skill);
             let params = match prompts::grammar(kind, options.quiz_mix) {
                 Some(g) => GenParams::json(max_out, g),
                 None => GenParams::prose(max_out),
@@ -708,9 +709,9 @@ impl Ai {
         }
         let title = {
             let conn = self.inner.db.read();
-            options.title.clone().filter(|t| !t.trim().is_empty()).unwrap_or_else(|| format!("{} · {}", kind.display_name(), store::scope_title(&conn, scope)))
+            options.title.clone().filter(|t| !t.trim().is_empty()).unwrap_or_else(|| format!("{} · {}", skill.map_or(kind.display_name(), |s| s.name), store::scope_title(&conn, scope)))
         };
-        let id = store::insert_study_item(&self.inner.db.write(), kind, &title, scope, &content, Some(&model_id), &note_ids)?;
+        let id = store::insert_study_item(&self.inner.db.write(), kind, skill.map(|s| s.id), &title, scope, &content, Some(&model_id), &note_ids)?;
         let mut ev = AiEvent::new(task, AiEventKind::Done).with_text(shown_text);
         ev.citations = used_citations.into_iter().cloned().collect();
         ev.result_id = Some(id);
