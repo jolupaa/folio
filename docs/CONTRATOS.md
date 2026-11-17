@@ -71,6 +71,12 @@ Todas las variantes incluyen `"citations": [Citation…]` (ver §4) con `n` úni
   ```json
   {"format": "markdown", "text": "## Ideas principales\n- La velocidad… [1]", "detail": "brief|detailed", "citations": […]}
   ```
+- `skill` (técnica de estudio del catálogo `folio_ai::skills`): mismo contenido que los textos
+  (`format`, `text`, `citations`). El id de la técnica (`feynman`, `cornell`, `cheatsheet`…) va en la
+  columna `study_items.skill`, no en el JSON; la columna es NULL para los demás tipos (CHECK en BD).
+  Un id que el catálogo ya no conozca se muestra como «Material».
+- En los materiales en Markdown, las fórmulas LaTeX en línea (`$…$`) se guardan ya convertidas en
+  texto normal (`text::plain_math`), porque la app no renderiza LaTeX.
 - `flashcards`:
   ```json
   {"cards": [{"id": "c1", "front": "¿Qué es…?", "back": "Es… [2]", "citations": [2]}], "citations": […]}

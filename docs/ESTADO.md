@@ -1,6 +1,6 @@
 # Folio · Estado de implementación y verificación
 
-Fecha: 2026-11-12. Distingue **compilación**, **pruebas automatizadas** y **validación en dispositivo**.
+Fecha: 2026-11-17 (técnicas de estudio; el resto, 2026-11-12). Distingue **compilación**, **pruebas automatizadas** y **validación en dispositivo**.
 
 ## Qué se ha verificado y cómo
 
@@ -9,10 +9,10 @@ Fecha: 2026-11-12. Distingue **compilación**, **pruebas automatizadas** y **val
 | Compilación | APK Android debug x86_64 (Flutter + Rust + llama.cpp + ML Kit) | Compila |
 | Compilación | `libfolio_bridge.so` arm64-v8a release (cargo-ndk) | Compila, 16,8 MB, sin `libc++_shared` |
 | Compilación | iOS | **No compilado** (no hay Xcode en Linux) |
-| Tests Rust | `cargo test --workspace` | 66 pasan (núcleo 35, IA 31) |
-| Tests Dart | `flutter test` | 49 pasan (códec de bloques, barra de búsqueda, formato) |
-| Análisis | `flutter analyze` | 0 errores, 0 avisos |
-| Host, modelo real | `cargo run --release -p folio_ai --example e2e` | Pasa con Qwen3.5-2B + Qwen3-Embedding |
+| Tests Rust | `cargo test --workspace` | 78 pasan (núcleo 36, IA 42) |
+| Tests Dart | `flutter test` | 55 pasan (códec de bloques, barra de búsqueda, formato, técnicas de estudio) |
+| Análisis | `flutter analyze` | 0 errores, 0 avisos (20 sugerencias de estilo previas) |
+| Host, modelo real | `cargo run --release -p folio_ai --example e2e` | Pasa con Qwen3.5-2B + Qwen3-Embedding, incluidas las 3 técnicas de estudio |
 | Emulador Android 17 (x86_64, 8 GB) | `integration_test/app_test.dart` | 2 tests pasan |
 | Emulador, IA real | `integration_test/ai_device_test.dart` | Pasa, incluido modo avión |
 | Dispositivo físico | — | **Sin validar** (ni Android ni iOS) |
@@ -30,6 +30,11 @@ Fecha: 2026-11-12. Distingue **compilación**, **pruebas automatizadas** y **val
 - **IA**: respeto estricto del ámbito, citas solo de fragmentos enviados (las inventadas se eliminan),
   «información insuficiente», cancelación, resumen por partes para ámbitos grandes, JSON de
   flashcards y cuestionarios, corrección de respuestas abiertas.
+- **Técnicas de estudio**: catálogo, generación y guardado con su técnica, técnica desconocida o
+  ausente (error claro, nada guardado), fuentes sin datos, edición, id retirado del catálogo,
+  fórmulas LaTeX convertidas en texto.
+- **Migración 2** desde una BD v1 con materiales, fuentes e intentos: no se pierde nada y la cascada
+  sigue funcionando.
 - **Modelos**: descarga, pausa, reanudación con Range, cancelación, SHA-256 incorrecto, espacio
   insuficiente, servidor caído; modelo ausente → mensaje claro.
 - **Modo avión** (emulador): tras descargar los modelos desde la app, pregunta y resumen sin red.
@@ -42,6 +47,9 @@ Fecha: 2026-11-12. Distingue **compilación**, **pruebas automatizadas** y **val
 | Host x86_64, 32 hilos, Qwen3.5-2B | 4,1 s | 7,2 s | 7,6 s |
 | Emulador Android, 6 núcleos, Qwen3.5-2B | ~10 s (9,2 s hasta el primer texto, incluye carga) | 19,5 s | 16,6 s |
 
+Técnicas de estudio en el host (Qwen3.5-2B, 2 notas de Física): Explícamelo fácil 11,7 s, Notas Cornell
+15,0 s, Chuleta de examen 9,2 s; flashcards (5) 12,1 s y cuestionario (4) 16,2 s con las reglas nuevas.
+
 Descarga en el emulador: embeddings 639 MB en 39 s, LLM 1,28 GB en 78 s (con verificación).
 El rendimiento, la memoria y el comportamiento térmico en móviles arm64 **no están medidos**.
 
@@ -52,7 +60,8 @@ listas, tareas, citas y adjuntos · búsqueda inferior por ámbito con fragmento
 captura (cámara, galería; escáner en iOS) → revisión (girar, recortar, repetir) → OCR con progreso y
 cancelación → texto editable → nota nueva o existente · adjuntos de imagen y PDF con visor y texto por
 página · asistente (preguntar, resúmenes, esquema, conceptos, flashcards, cuestionarios) con citas
-navegables · materiales guardados y editables · gestor de modelos · pizarra con guardado automático.
+navegables · técnicas de estudio (Explícamelo fácil, Notas Cornell, Chuleta de examen) · materiales
+guardados y editables · gestor de modelos · pizarra con guardado automático.
 
 ## Pendiente y limitaciones conocidas
 
@@ -72,3 +81,7 @@ navegables · materiales guardados y editables · gestor de modelos · pizarra c
    No se ha probado con PDF reales escaneados en dispositivo.
 7. Búsqueda dentro de la nota: resalta la coincidencia actual, no todas a la vez.
 8. Solo se generó APK de depuración; falta firma y configuración de publicación.
+9. **Técnicas de estudio**: probadas con el modelo 2B en el host, no en un móvil. Con el 2B, las
+   analogías de «Explícamelo fácil» a veces son imprecisas y las notas Cornell alternan `### ¿…?` y
+   `**¿…?**`. La hoja del asistente no tiene prueba de interfaz. Pendiente: tutor socrático (fase 2)
+   y repaso interactivo de las notas Cornell.

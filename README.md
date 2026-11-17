@@ -1,7 +1,8 @@
 # Folio
 
 Notas para iOS y Android con la organización de Apple Notes y herramientas de estudio inspiradas en
-NotebookLM: OCR de apuntes, resúmenes, preguntas con referencias, flashcards, cuestionarios y pizarra.
+NotebookLM: OCR de apuntes, resúmenes, preguntas con referencias, flashcards, cuestionarios, técnicas de
+estudio (explicación sencilla, notas Cornell, chuleta de examen) y pizarra.
 Todo se procesa en el dispositivo: tras descargar los modelos, la app funciona en modo avión.
 
 - Arquitectura: [docs/ARQUITECTURA.md](docs/ARQUITECTURA.md)

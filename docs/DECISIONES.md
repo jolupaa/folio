@@ -554,3 +554,31 @@ Todas compilan en Flutter 3.47.9; la build de APK debug está verificada en loca
 11. ¿Compensa MTP en móvil (+94 MB) una vez resuelta la #25618?
 12. iOS: ¿cuentan las páginas mmap limpias para `phys_footprint` cuando Metal usa buffers no-copy? (NV)
 13. Fechas pendientes: FRB 2.14 estable, fusión del PR #122 de `native_toolchain_rust`, salida de llama-cpp-2 con llama.cpp v0.9.0 y fusión del PR #1181 (abort callback).
+
+## 8. Técnicas de estudio («skills»)
+
+Fecha: 2026-11-17. Diseño: `docs/superpowers/specs/2026-11-17-tecnicas-estudio-design.md`.
+
+- **Se buscaron las Agent Skills (SKILL.md) académicas y de estudio más usadas.** La mayoría son
+  para investigar o escribir artículos (búsqueda bibliográfica, LaTeX, revisión) y necesitan red,
+  Python y herramientas: no encajan en una app sin conexión.
+- **No se cargan tal cual.** Ocupan 3–12 KB (≈1.000–3.000 tokens); con `n_ctx` 8192 y 20–30 tok/s
+  de prellenado en Android (§2) añadirían ~1 min por uso, y 2B/4B siguen mal instrucciones largas.
+  Se condensa cada técnica en un prompt propio de ≤ 700 caracteres (`folio_ai::skills`).
+- **Licencias.** Solo se toman ideas de skills MIT; el texto de los prompts es propio.
+  Descartadas: Imbad0202/academic-research-skills (CC BY-NC 4.0, no comercial), jwynia/agent-skills
+  y lyndonkl/claude (sin licencia), K-Dense-AI/scientific-agent-skills (bases de datos científicas
+  con red y Python).
+- **Origen de cada técnica (créditos):**
+  - Explícamelo fácil: neurofoo/agent-skills `feynman` y mblode/agent-skills `eli5` (MIT).
+  - Notas Cornell: wentorai/research-plugins `academic-study-methods` (MIT), con interrogación
+    elaborativa (preguntas «¿por qué?/¿cómo?»).
+  - Chuleta de examen: Evan715823/cheatsheet-generator-skill (MIT), sin LaTeX.
+  - Reglas de flashcards: «20 reglas para formular conocimiento» de SuperMemo (información mínima,
+    huecos). Reglas de cuestionario: distractores creíbles y preguntas de comprensión/aplicación.
+    `assessment-design-guide` (wentorai) resultó ser de psicometría y no se usó.
+- **Prueba real (Qwen3.5-2B, host x86_64):** las tres técnicas siguen su estructura y citan. Tras
+  revisar la salida se endurecieron los prompts (la chuleta añadía fórmulas ajenas a las notas) y se
+  añadió `text::plain_math`, porque el 2B escribe LaTeX aunque se le pida que no.
+- **Fuera de v1:** importar SKILL.md por el usuario, tutor socrático en el chat (SebastianElvis/hammer
+  `teach`, fase 2) y repaso interactivo de las notas Cornell.
