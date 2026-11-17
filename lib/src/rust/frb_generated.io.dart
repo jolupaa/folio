@@ -204,6 +204,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   List<StudyItemSummary> dco_decode_list_study_item_summary(dynamic raw);
 
   @protected
+  List<StudySkillInfo> dco_decode_list_study_skill_info(dynamic raw);
+
+  @protected
   List<TextMatch> dco_decode_list_text_match(dynamic raw);
 
   @protected
@@ -304,6 +307,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   StudyOptions dco_decode_study_options(dynamic raw);
+
+  @protected
+  StudySkillInfo dco_decode_study_skill_info(dynamic raw);
 
   @protected
   TextMatch dco_decode_text_match(dynamic raw);
@@ -501,6 +507,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   List<StudyItemSummary> sse_decode_list_study_item_summary(SseDeserializer deserializer);
 
   @protected
+  List<StudySkillInfo> sse_decode_list_study_skill_info(SseDeserializer deserializer);
+
+  @protected
   List<TextMatch> sse_decode_list_text_match(SseDeserializer deserializer);
 
   @protected
@@ -601,6 +610,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   StudyOptions sse_decode_study_options(SseDeserializer deserializer);
+
+  @protected
+  StudySkillInfo sse_decode_study_skill_info(SseDeserializer deserializer);
 
   @protected
   TextMatch sse_decode_text_match(SseDeserializer deserializer);
@@ -798,6 +810,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   void sse_encode_list_study_item_summary(List<StudyItemSummary> self, SseSerializer serializer);
 
   @protected
+  void sse_encode_list_study_skill_info(List<StudySkillInfo> self, SseSerializer serializer);
+
+  @protected
   void sse_encode_list_text_match(List<TextMatch> self, SseSerializer serializer);
 
   @protected
@@ -898,6 +913,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   void sse_encode_study_options(StudyOptions self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_study_skill_info(StudySkillInfo self, SseSerializer serializer);
 
   @protected
   void sse_encode_text_match(TextMatch self, SseSerializer serializer);

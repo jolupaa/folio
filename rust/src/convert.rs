@@ -119,7 +119,7 @@ conv_enum!(a::AiEventKind, t::AiEventKind { Started, Progress, Sources, Token, D
 conv_enum!(a::ModelRole, t::ModelRole { Llm, Embedding });
 conv_enum!(a::ModelStatus, t::ModelStatus { NotInstalled, Downloading, Paused, Verifying, Installed, Failed });
 conv_enum!(a::DownloadEventKind, t::DownloadEventKind { Started, Progress, Verifying, Completed, Paused, Cancelled, Failed });
-conv_enum!(a::StudyKind, t::StudyKind { Summary, Outline, KeyConcepts, Flashcards, Quiz });
+conv_enum!(a::StudyKind, t::StudyKind { Summary, Outline, KeyConcepts, Flashcards, Quiz, Skill });
 conv_enum!(a::DetailLevel, t::DetailLevel { Brief, Detailed });
 conv_enum!(a::QuizMix, t::QuizMix { MultipleChoice, OpenEnded, Mixed });
 conv_enum!(a::ChatRole, t::ChatRole { User, Assistant });
@@ -133,9 +133,9 @@ conv_struct!(a::Citation => t::Citation { n, note_id, note_title, location, chun
 conv_struct!(a::ModelInfo => t::ModelInfo { id, display_name, tier_label, role, family, quantization, file_name, url, sha256, size_bytes, license, license_url, context_length, min_ram_bytes, description, status, downloaded_bytes, error, is_active, supported_on_device });
 conv_struct!(a::DeviceInfo => t::DeviceInfo { platform, arch, total_ram_bytes, available_ram_bytes, cpu_cores, free_storage_bytes, recommended_llm_id, can_run_any_llm, notes });
 conv_struct!(a::DownloadEvent => t::DownloadEvent { model_id, kind, downloaded_bytes, total_bytes, bytes_per_second, message });
-conv_struct!(t::StudyOptions => a::StudyOptions { detail, count, quiz_mix, title });
+conv_struct!(t::StudyOptions => a::StudyOptions { detail, count, quiz_mix, title, skill });
 conv_struct!(a::SourceRef => t::SourceRef { note_id, title, exists });
-conv_struct!(a::StudyItemSummary => t::StudyItemSummary { id, kind, title, scope_label, source_count, item_count, created_at, updated_at });
+conv_struct!(a::StudyItemSummary => t::StudyItemSummary { id, kind, skill, title, scope_label, source_count, item_count, created_at, updated_at });
 conv_struct!(a::QuizAttempt => t::QuizAttempt { id, study_id, answers_json, score, created_at, completed_at });
 conv_struct!(a::ChatThreadSummary => t::ChatThreadSummary { id, title, scope_label, message_count, updated_at });
 
@@ -146,7 +146,7 @@ impl From<a::AiEvent> for t::AiEvent {
 }
 impl From<a::StudyItem> for t::StudyItem {
     fn from(v: a::StudyItem) -> Self {
-        Self { id: v.id, kind: v.kind.into(), title: v.title, scope: v.scope.into(), scope_label: v.scope_label, content_json: v.content_json, model_id: v.model_id, sources: vec(v.sources), created_at: v.created_at, updated_at: v.updated_at }
+        Self { id: v.id, kind: v.kind.into(), skill: v.skill, title: v.title, scope: v.scope.into(), scope_label: v.scope_label, content_json: v.content_json, model_id: v.model_id, sources: vec(v.sources), created_at: v.created_at, updated_at: v.updated_at }
     }
 }
 impl From<a::ChatMessage> for t::ChatMessage {

@@ -455,6 +455,20 @@ pub enum StudyKind {
     KeyConcepts,
     Flashcards,
     Quiz,
+    /// Técnica de estudio del catálogo; el id va en `skill`.
+    Skill,
+}
+
+/// Técnica de estudio del catálogo (`list_study_skills`).
+pub struct StudySkillInfo {
+    /// Id estable (se guarda con el material).
+    pub id: String,
+    pub name: String,
+    /// Encabezado plural en la lista de materiales.
+    pub section: String,
+    pub description: String,
+    /// Nombre lógico del icono.
+    pub icon: String,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -476,6 +490,8 @@ pub struct StudyOptions {
     pub count: u32,
     pub quiz_mix: QuizMix,
     pub title: Option<String>,
+    /// Id de la técnica (obligatorio con `StudyKind::Skill`).
+    pub skill: Option<String>,
 }
 
 pub struct SourceRef {
@@ -487,6 +503,8 @@ pub struct SourceRef {
 pub struct StudyItemSummary {
     pub id: String,
     pub kind: StudyKind,
+    /// Id de la técnica (solo con `StudyKind::Skill`).
+    pub skill: Option<String>,
     pub title: String,
     pub scope_label: String,
     pub source_count: u32,
@@ -499,6 +517,8 @@ pub struct StudyItemSummary {
 pub struct StudyItem {
     pub id: String,
     pub kind: StudyKind,
+    /// Id de la técnica (solo con `StudyKind::Skill`).
+    pub skill: Option<String>,
     pub title: String,
     pub scope: AiScope,
     pub scope_label: String,
