@@ -144,7 +144,7 @@ pub fn validate_content(kind: StudyKind, content_json: &str) -> anyhow::Result<V
     let v: Value = serde_json::from_str(content_json).map_err(|e| anyhow::anyhow!("Contenido no válido: {e}"))?;
     let str_field = |o: &Value, k: &str| o.get(k).and_then(|x| x.as_str()).map(|s| !s.trim().is_empty()).unwrap_or(false);
     match kind {
-        StudyKind::Summary | StudyKind::Outline | StudyKind::KeyConcepts => {
+        StudyKind::Summary | StudyKind::Outline | StudyKind::KeyConcepts | StudyKind::Skill => {
             anyhow::ensure!(v.get("text").and_then(|t| t.as_str()).is_some(), "Falta el texto");
         }
         StudyKind::Flashcards => {
@@ -233,6 +233,7 @@ pub fn list_study_items(conn: &Connection, note_id: Option<&str>) -> anyhow::Res
         out.push(StudyItemSummary {
             id,
             kind,
+            skill: None,
             title,
             scope_label,
             source_count,
@@ -277,6 +278,7 @@ pub fn get_study_item(conn: &Connection, id: &str) -> anyhow::Result<StudyItem> 
     Ok(StudyItem {
         id: id.to_string(),
         kind,
+        skill: None,
         title,
         scope_label: scope_label(conn, &scope),
         scope,

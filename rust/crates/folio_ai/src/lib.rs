@@ -10,6 +10,7 @@ pub mod engine;
 pub mod index;
 pub mod models;
 pub mod prompts;
+pub mod skills;
 pub mod store;
 pub mod text;
 pub mod types;
@@ -620,7 +621,7 @@ impl Ai {
         };
         let allowed: BTreeSet<u32> = citations.iter().map(|c| c.n).collect();
         let blocks: Vec<String> = chunks.iter().enumerate().map(|(i, h)| prompts::source_block(i as u32 + 1, h, &citations[i].location)).collect();
-        let max_out = prompts::max_tokens(kind, options.detail, count);
+        let max_out = prompts::max_tokens(kind, options.detail, count, None);
 
         let produced = self.with_generator(task, emit, |gen, model_id| {
             let n_ctx = gen.n_ctx() as usize;
@@ -670,8 +671,8 @@ impl Ai {
                 anyhow::ensure!(!notes.is_empty(), "No se pudo extraer contenido de las fuentes");
                 notes.join("\n")
             };
-            progress(prompts::writing_message(kind).into(), Some(0.9));
-            let prompt = prompts::study_prompt(kind, options, count, &material);
+            progress(prompts::writing_message(kind, None).into(), Some(0.9));
+            let prompt = prompts::study_prompt(kind, options, count, &material, None);
             let params = match prompts::grammar(kind, options.quiz_mix) {
                 Some(g) => GenParams::json(max_out, g),
                 None => GenParams::prose(max_out),

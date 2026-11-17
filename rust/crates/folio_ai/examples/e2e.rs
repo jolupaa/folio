@@ -105,7 +105,7 @@ fn main() -> anyhow::Result<()> {
     }
 
     let folder = |id: &str| AiScope { kind: ScopeKind::Folder, ids: vec![id.to_string()] };
-    let opts = |detail, count, mix| StudyOptions { detail, count, quiz_mix: mix, title: None };
+    let opts = |detail, count, mix| StudyOptions { detail, count, quiz_mix: mix, title: None, skill: None };
 
     let a = run("pregunta en Física", |s| {
         ai.ask(folder(&fis.id), "¿Qué dice la segunda ley de Newton y en qué unidad se mide la fuerza?".into(), None, s).unwrap();

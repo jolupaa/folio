@@ -206,7 +206,7 @@ fn study_materials_are_generated_saved_and_cited() {
     let f = e.core.create_folder(None, "Física").unwrap();
     let a = note(&e.core, Some(&f.id), "Cinemática", &["La velocidad es el cambio de posición."]);
     let _b = note(&e.core, Some(&f.id), "Dinámica", &["La aceleración se mide en metros por segundo al cuadrado."]);
-    let opts = |count| StudyOptions { detail: DetailLevel::Brief, count, quiz_mix: QuizMix::Mixed, title: None };
+    let opts = |count| StudyOptions { detail: DetailLevel::Brief, count, quiz_mix: QuizMix::Mixed, title: None, skill: None };
     for kind in [StudyKind::Summary, StudyKind::Flashcards, StudyKind::Quiz] {
         let evs = collect(|s| {
             e.ai.generate_study(kind, scope_folder(&f.id), opts(5), s).unwrap();
@@ -262,7 +262,7 @@ fn large_scope_uses_map_reduce() {
         note(&e.core, Some(&f.id), &format!("Tema {i}"), &[&p]);
     }
     let evs = collect(|s| {
-        e.ai.generate_study(StudyKind::Summary, scope_folder(&f.id), StudyOptions { detail: DetailLevel::Detailed, count: 5, quiz_mix: QuizMix::Mixed, title: Some("Mi resumen".into()) }, s).unwrap();
+        e.ai.generate_study(StudyKind::Summary, scope_folder(&f.id), StudyOptions { detail: DetailLevel::Detailed, count: 5, quiz_mix: QuizMix::Mixed, title: Some("Mi resumen".into()), skill: None }, s).unwrap();
     });
     assert!(evs.iter().any(|e| e.kind == AiEventKind::Progress && e.text.contains("parte 2 de")), "progreso por partes");
     let done = evs.last().unwrap();

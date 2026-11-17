@@ -2,6 +2,7 @@
 //! para salidas JSON y validación/normalización del contenido generado.
 
 use crate::index::Hit;
+use crate::skills::StudySkill;
 use crate::text::{finalize_answer, strip_think, validate_citations};
 use crate::types::*;
 use serde_json::{json, Value};
@@ -78,30 +79,45 @@ pub fn map_prompt(sources: &str) -> String {
     )
 }
 
-pub fn writing_message(kind: StudyKind) -> &'static str {
-    match kind {
+/// Una técnica sin entrada de catálogo no debería llegar aquí (`skills::resolve` la rechaza
+/// antes); si llega, se trata como un resumen breve en vez de fallar.
+fn effective(kind: StudyKind, skill: Option<&StudySkill>) -> StudyKind {
+    if kind == StudyKind::Skill && skill.is_none() {
+        StudyKind::Summary
+    } else {
+        kind
+    }
+}
+
+pub fn writing_message(kind: StudyKind, skill: Option<&StudySkill>) -> &'static str {
+    match effective(kind, skill) {
         StudyKind::Summary => "Escribiendo el resumen…",
         StudyKind::Outline => "Elaborando el esquema…",
         StudyKind::KeyConcepts => "Extrayendo los conceptos clave…",
         StudyKind::Flashcards => "Creando las flashcards…",
         StudyKind::Quiz => "Preparando el cuestionario…",
+        StudyKind::Skill => skill.map_or("Escribiendo…", |s| s.writing),
     }
 }
 
-pub fn max_tokens(kind: StudyKind, detail: DetailLevel, count: usize) -> u32 {
-    match kind {
+pub fn max_tokens(kind: StudyKind, detail: DetailLevel, count: usize, skill: Option<&StudySkill>) -> u32 {
+    let detail = if kind == StudyKind::Skill { DetailLevel::Brief } else { detail };
+    match effective(kind, skill) {
         StudyKind::Summary if detail == DetailLevel::Brief => 400,
         StudyKind::Summary => 1100,
         StudyKind::Outline => 900,
         StudyKind::KeyConcepts => 900,
         StudyKind::Flashcards => (count as u32 * 90 + 150).min(3000),
         StudyKind::Quiz => (count as u32 * 170 + 150).min(3600),
+        StudyKind::Skill => skill.map_or(400, |s| s.max_tokens),
     }
 }
 
-pub fn study_prompt(kind: StudyKind, options: &StudyOptions, count: usize, material: &str) -> String {
-    let task = match kind {
-        StudyKind::Summary if options.detail == DetailLevel::Brief => {
+pub fn study_prompt(kind: StudyKind, options: &StudyOptions, count: usize, material: &str, skill: Option<&StudySkill>) -> String {
+    let brief = options.detail == DetailLevel::Brief || kind == StudyKind::Skill;
+    let task = match effective(kind, skill) {
+        StudyKind::Skill => skill.map_or_else(String::new, |s| s.task.to_string()),
+        StudyKind::Summary if brief => {
             "Escribe un resumen BREVE (un párrafo corto o 4–6 viñetas) con las ideas principales, en Markdown, citando las fuentes.".to_string()
         }
         StudyKind::Summary => "Escribe un resumen DETALLADO y bien organizado en Markdown, con encabezados (##) por tema y viñetas, que cubra todos los contenidos importantes y cite las fuentes.".to_string(),
@@ -219,7 +235,7 @@ pub fn build_content(
 ) -> anyhow::Result<(Value, BTreeSet<u32>, String)> {
     let mut all: BTreeSet<u32> = BTreeSet::new();
     match kind {
-        StudyKind::Summary | StudyKind::Outline | StudyKind::KeyConcepts => {
+        StudyKind::Summary | StudyKind::Outline | StudyKind::KeyConcepts | StudyKind::Skill => {
             let fin = finalize_answer(raw, &|n| allowed.contains(&n));
             anyhow::ensure!(!fin.insufficient, "Las fuentes seleccionadas no contienen información suficiente.");
             all.extend(fin.used.iter().copied());
@@ -307,4 +323,38 @@ pub fn parse_grade(raw: &str) -> anyhow::Result<Value> {
     let score = v.get("score").and_then(|s| s.as_f64()).unwrap_or(0.0).clamp(0.0, 1.0);
     let feedback = text_field(&v, "feedback");
     Ok(json!({"score": score, "correct": score >= 0.6, "feedback": feedback}))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::skills;
+
+    fn opts() -> StudyOptions {
+        StudyOptions { detail: DetailLevel::Brief, count: 5, quiz_mix: QuizMix::Mixed, title: None, skill: Some("cornell".into()) }
+    }
+
+    #[test]
+    fn skill_prompt_uses_catalog_task() {
+        let cornell = skills::find("cornell").unwrap();
+        let p = study_prompt(StudyKind::Skill, &opts(), 5, "[1] «Nota»\nTexto", Some(cornell));
+        assert!(p.contains(cornell.task), "{p}");
+        assert!(p.contains("FUENTES:\n[1] «Nota»"), "{p}");
+        assert_eq!(max_tokens(StudyKind::Skill, DetailLevel::Brief, 5, Some(cornell)), 1100);
+        assert_eq!(writing_message(StudyKind::Skill, Some(cornell)), cornell.writing);
+        assert!(grammar(StudyKind::Skill, QuizMix::Mixed).is_none());
+        // Sin técnica (no debería ocurrir): se comporta como un resumen breve.
+        let fallback = study_prompt(StudyKind::Skill, &opts(), 5, "x", None);
+        assert!(fallback.contains("resumen BREVE"), "{fallback}");
+    }
+
+    #[test]
+    fn skill_output_is_built_as_markdown_text() {
+        let allowed: BTreeSet<u32> = [1].into_iter().collect();
+        let (v, used, _) = build_content(StudyKind::Skill, &opts(), 5, "### ¿Qué es?\n- Algo [1] [7]", &allowed).unwrap();
+        assert_eq!(v["format"], "markdown");
+        assert!(v["text"].as_str().unwrap().contains("Algo [1]"));
+        assert!(!v["text"].as_str().unwrap().contains("[7]"));
+        assert_eq!(used.into_iter().collect::<Vec<_>>(), vec![1]);
+    }
 }

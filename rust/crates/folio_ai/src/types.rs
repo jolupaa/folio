@@ -235,6 +235,8 @@ pub enum StudyKind {
     KeyConcepts,
     Flashcards,
     Quiz,
+    /// Técnica de estudio del catálogo (`crate::skills`); el id va aparte (`skill`).
+    Skill,
 }
 
 impl StudyKind {
@@ -245,6 +247,7 @@ impl StudyKind {
             StudyKind::KeyConcepts => "key_concepts",
             StudyKind::Flashcards => "flashcards",
             StudyKind::Quiz => "quiz",
+            StudyKind::Skill => "skill",
         }
     }
     pub fn from_db(s: &str) -> Option<StudyKind> {
@@ -254,10 +257,12 @@ impl StudyKind {
             "key_concepts" => StudyKind::KeyConcepts,
             "flashcards" => StudyKind::Flashcards,
             "quiz" => StudyKind::Quiz,
+            "skill" => StudyKind::Skill,
             _ => return None,
         })
     }
-    /// Nombre visible (título por defecto «<nombre> · <ámbito>»).
+    /// Nombre visible (título por defecto «<nombre> · <ámbito>»). Las técnicas usan el nombre
+    /// del catálogo; «Material» es el último recurso.
     pub fn display_name(self) -> &'static str {
         match self {
             StudyKind::Summary => "Resumen",
@@ -265,10 +270,12 @@ impl StudyKind {
             StudyKind::KeyConcepts => "Conceptos clave",
             StudyKind::Flashcards => "Flashcards",
             StudyKind::Quiz => "Cuestionario",
+            StudyKind::Skill => "Material",
         }
     }
+    /// Salida Markdown (no JSON estructurado).
     pub fn is_text(self) -> bool {
-        matches!(self, StudyKind::Summary | StudyKind::Outline | StudyKind::KeyConcepts)
+        matches!(self, StudyKind::Summary | StudyKind::Outline | StudyKind::KeyConcepts | StudyKind::Skill)
     }
 }
 
@@ -300,6 +307,8 @@ pub struct StudyOptions {
     pub count: u32,
     pub quiz_mix: QuizMix,
     pub title: Option<String>,
+    /// Id de la técnica (obligatorio con `StudyKind::Skill`).
+    pub skill: Option<String>,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -313,6 +322,7 @@ pub struct SourceRef {
 pub struct StudyItemSummary {
     pub id: String,
     pub kind: StudyKind,
+    pub skill: Option<String>,
     pub title: String,
     pub scope_label: String,
     pub source_count: u32,
@@ -325,6 +335,7 @@ pub struct StudyItemSummary {
 pub struct StudyItem {
     pub id: String,
     pub kind: StudyKind,
+    pub skill: Option<String>,
     pub title: String,
     pub scope: AiScope,
     pub scope_label: String,
