@@ -1,0 +1,22 @@
+PODS:
+  - Flutter (1.0.0)
+  - folio_bridge (0.0.1):
+    - Flutter
+
+DEPENDENCIES:
+  - Flutter (from `Flutter`)
+  - folio_bridge (from `.symlinks/plugins/folio_bridge/ios`)
+
+EXTERNAL SOURCES:
+  Flutter:
+    :path: Flutter
+  folio_bridge:
+    :path: ".symlinks/plugins/folio_bridge/ios"
+
+SPEC CHECKSUMS:
+  Flutter: 71a624a5bc0c04062bf19101d501e466baf2fb47
+  folio_bridge: e0b202fba1a9a3d0dd2b6c9665c96e4d802037f2
+
+PODFILE CHECKSUM: 3ba3a73b1b12adcf321a227a745625fe0888cc82
+
+COCOAPODS: 1.17.0
