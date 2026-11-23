@@ -12,7 +12,10 @@ use std::sync::Arc;
 use std::time::Duration;
 
 /// Migraciones en orden. NUNCA editar una ya publicada: añadir una nueva.
-const MIGRATIONS: &[(u32, &str)] = &[(1, include_str!("../migrations/0001_init.sql"))];
+const MIGRATIONS: &[(u32, &str)] = &[
+    (1, include_str!("../migrations/0001_init.sql")),
+    (2, include_str!("../migrations/0002_study_skills.sql")),
+];
 
 pub const SCHEMA_VERSION: u32 = MIGRATIONS[MIGRATIONS.len() - 1].0;
 
@@ -139,6 +142,10 @@ fn open_connection(path: &Path) -> anyhow::Result<Connection> {
 }
 
 /// Aplica en orden las migraciones pendientes, cada una en su transacción.
+///
+/// Las claves foráneas se desactivan mientras se migra (el PRAGMA no tiene efecto dentro de una
+/// transacción) para poder reconstruir tablas sin borrados en cascada; antes de confirmar cada
+/// migración se comprueba que no queda ninguna referencia rota. Al terminar se restauran siempre.
 pub fn migrate(conn: &mut Connection) -> anyhow::Result<u32> {
     let current: u32 = conn.query_row("PRAGMA user_version", [], |r| r.get(0))?;
     if current > SCHEMA_VERSION {
@@ -146,14 +153,37 @@ pub fn migrate(conn: &mut Connection) -> anyhow::Result<u32> {
             "La base de datos es de una versión más reciente de la app ({current} > {SCHEMA_VERSION})"
         );
     }
+    if current == SCHEMA_VERSION {
+        return Ok(SCHEMA_VERSION);
+    }
+    let fk_on: bool = conn.query_row("PRAGMA foreign_keys", [], |r| r.get(0))?;
+    conn.execute_batch("PRAGMA foreign_keys = OFF;")?;
+    let result = apply_pending(conn, current);
+    if fk_on {
+        conn.execute_batch("PRAGMA foreign_keys = ON;")?;
+    }
+    result?;
+    Ok(SCHEMA_VERSION)
+}
+
+fn fk_violations(conn: &Connection) -> rusqlite::Result<i64> {
+    conn.query_row("SELECT count(*) FROM pragma_foreign_key_check", [], |r| r.get(0))
+}
+
+fn apply_pending(conn: &mut Connection, current: u32) -> anyhow::Result<()> {
     for (version, sql) in MIGRATIONS.iter().filter(|(v, _)| *v > current) {
         let tx = conn.transaction()?;
+        // Solo cuentan las referencias rotas que añada la migración: una antigua no debe impedir
+        // abrir la base de datos tras actualizar la app.
+        let before = fk_violations(&tx)?;
         tx.execute_batch(sql).with_context(|| format!("migración {version}"))?;
+        let after = fk_violations(&tx)?;
+        anyhow::ensure!(after <= before, "migración {version}: claves foráneas rotas ({before} → {after})");
         tx.pragma_update(None, "user_version", version)?;
         tx.commit()?;
         log::info!("migración {version} aplicada");
     }
-    Ok(SCHEMA_VERSION)
+    Ok(())
 }
 
 #[cfg(test)]
@@ -186,6 +216,68 @@ mod tests {
             [],
         );
         assert!(r.is_err());
+    }
+
+    /// Una instalación v1 con materiales, fuentes e intentos se actualiza sin perder nada y la
+    /// cascada sigue funcionando (la migración 2 reconstruye `study_items`).
+    #[test]
+    fn migration_2_keeps_study_data_and_cascades() {
+        let dir = tempfile::tempdir().unwrap();
+        let mut conn = Connection::open(dir.path().join("v1.sqlite3")).unwrap();
+        conn.execute_batch("PRAGMA foreign_keys = ON;").unwrap();
+        conn.execute_batch(include_str!("../migrations/0001_init.sql")).unwrap();
+        conn.pragma_update(None, "user_version", 1).unwrap();
+        conn.execute_batch(
+            "INSERT INTO study_items(id,kind,title,scope,content,model_id,created_at,updated_at)
+               VALUES ('s1','quiz','Test','{}','{\"questions\":[]}',NULL,1,2);
+             INSERT INTO study_item_sources(study_id,note_id) VALUES ('s1','n1');
+             INSERT INTO quiz_attempts(id,study_id,answers,score,created_at) VALUES ('a1','s1','[]',0.5,3);",
+        )
+        .unwrap();
+
+        assert_eq!(migrate(&mut conn).unwrap(), 2);
+
+        let count = |sql: &str| conn.query_row(sql, [], |r| r.get::<_, i64>(0)).unwrap();
+        assert_eq!(count("SELECT count(*) FROM study_items WHERE id='s1' AND kind='quiz' AND skill IS NULL AND title='Test'"), 1);
+        assert_eq!(count("SELECT count(*) FROM study_item_sources WHERE study_id='s1'"), 1);
+        assert_eq!(count("SELECT count(*) FROM quiz_attempts WHERE study_id='s1'"), 1);
+        assert_eq!(count("PRAGMA foreign_keys"), 1);
+
+        conn.execute(
+            "INSERT INTO study_items(id,kind,skill,title,scope,content,created_at,updated_at)
+             VALUES ('s2','skill','feynman','T','{}','{}',1,1)",
+            [],
+        )
+        .unwrap();
+        assert!(conn
+            .execute("INSERT INTO study_items(id,kind,title,scope,content,created_at,updated_at) VALUES ('s3','skill','T','{}','{}',1,1)", [])
+            .is_err());
+        assert!(conn
+            .execute("INSERT INTO study_items(id,kind,skill,title,scope,content,created_at,updated_at) VALUES ('s4','summary','x','T','{}','{}',1,1)", [])
+            .is_err());
+
+        conn.execute("DELETE FROM study_items WHERE id='s1'", []).unwrap();
+        assert_eq!(count("SELECT count(*) FROM study_item_sources"), 0);
+        assert_eq!(count("SELECT count(*) FROM quiz_attempts"), 0);
+    }
+
+    /// Una referencia rota que ya existía antes (no la causa la migración) no debe impedir abrir
+    /// la base de datos tras actualizar la app.
+    #[test]
+    fn migration_tolerates_preexisting_foreign_key_violations() {
+        let dir = tempfile::tempdir().unwrap();
+        let mut conn = Connection::open(dir.path().join("v1.sqlite3")).unwrap();
+        conn.execute_batch(include_str!("../migrations/0001_init.sql")).unwrap();
+        conn.pragma_update(None, "user_version", 1).unwrap();
+        conn.execute_batch(
+            "PRAGMA foreign_keys = OFF;
+             INSERT INTO quiz_attempts(id,study_id,answers,created_at) VALUES ('a1','fantasma','[]',1);
+             PRAGMA foreign_keys = ON;",
+        )
+        .unwrap();
+        assert_eq!(migrate(&mut conn).unwrap(), 2);
+        let n: i64 = conn.query_row("SELECT count(*) FROM quiz_attempts", [], |r| r.get(0)).unwrap();
+        assert_eq!(n, 1, "la migración no borra datos");
     }
 
     #[test]

@@ -422,6 +422,157 @@ pub fn snippet(text: &str, max: usize) -> String {
     format!("{}…", cut.trim_end())
 }
 
+/// Convierte las fórmulas LaTeX en línea (`$…$`, `$$…$$`) en texto normal: la app muestra
+/// Markdown sin LaTeX y los modelos pequeños lo usan aunque se les pida que no. Solo toca pares
+/// en la misma línea cuyo contenido parece una fórmula, así que «$5 y $10» queda intacto.
+pub fn plain_math(s: &str) -> String {
+    let mut out = String::with_capacity(s.len());
+    let mut rest = s;
+    while let Some(start) = rest.find('$') {
+        out.push_str(&rest[..start]);
+        let from = &rest[start..];
+        let delim = if from.starts_with("$$") { "$$" } else { "$" };
+        let body = &from[delim.len()..];
+        let line = &body[..body.find('\n').unwrap_or(body.len())];
+        if let Some(end) = line.find(delim) {
+            let inner = &line[..end];
+            if looks_like_math(inner) {
+                out.push_str(&latex_to_text(inner));
+                rest = &body[end + delim.len()..];
+                continue;
+            }
+        }
+        out.push_str(delim);
+        rest = body;
+    }
+    out.push_str(rest);
+    out
+}
+
+fn looks_like_math(inner: &str) -> bool {
+    !inner.is_empty()
+        && !inner.starts_with(' ')
+        && !inner.ends_with(' ')
+        && (inner.contains(['\\', '^', '_', '='])
+            || (inner.chars().count() <= 3 && inner.chars().all(char::is_alphabetic)))
+}
+
+/// Contenido de `{…}` (o un solo carácter) a partir de `i`; devuelve también la posición siguiente.
+fn latex_group(chars: &[char], i: usize) -> (String, usize) {
+    match chars.get(i) {
+        Some('{') => {
+            let mut depth = 0;
+            for (k, &c) in chars.iter().enumerate().skip(i) {
+                match c {
+                    '{' => depth += 1,
+                    '}' => {
+                        depth -= 1;
+                        if depth == 0 {
+                            return (chars[i + 1..k].iter().collect(), k + 1);
+                        }
+                    }
+                    _ => {}
+                }
+            }
+            (chars[i + 1..].iter().collect(), chars.len())
+        }
+        Some(&c) => (c.to_string(), i + 1),
+        None => (String::new(), i),
+    }
+}
+
+/// Símbolo de un comando LaTeX y si es una letra griega (que se une a lo que sigue: «Δx»).
+fn latex_symbol(name: &str) -> (String, bool) {
+    let greek = match name {
+        "Delta" => "Δ", "delta" => "δ", "alpha" => "α", "beta" => "β", "gamma" => "γ", "lambda" => "λ",
+        "mu" => "μ", "pi" => "π", "rho" => "ρ", "sigma" => "σ", "theta" => "θ", "omega" => "ω", "Omega" => "Ω",
+        _ => "",
+    };
+    if !greek.is_empty() {
+        return (greek.into(), true);
+    }
+    let sym = match name {
+        "cdot" => "·", "times" => "×", "div" => "÷", "pm" => "±", "approx" => "≈", "neq" => "≠",
+        "leq" | "le" => "≤", "geq" | "ge" => "≥", "to" | "rightarrow" => "→", "infty" => "∞", "degree" | "circ" => "°",
+        "quad" | "qquad" => " ", "left" | "right" => "",
+        other => other,
+    };
+    (sym.into(), false)
+}
+
+fn latex_to_text(s: &str) -> String {
+    let chars: Vec<char> = s.chars().collect();
+    let mut out = String::new();
+    let mut i = 0;
+    while i < chars.len() {
+        let c = chars[i];
+        match c {
+            '\\' => {
+                let mut j = i + 1;
+                while j < chars.len() && chars[j].is_ascii_alphabetic() {
+                    j += 1;
+                }
+                if j == i + 1 {
+                    // \, \; \: \! \{ \} …
+                    match chars.get(j) {
+                        Some(',' | ';' | ':' | ' ') => out.push(' '),
+                        Some('!') | None => {}
+                        Some(&other) => out.push(other),
+                    }
+                    i = j + 1;
+                    continue;
+                }
+                let name: String = chars[i + 1..j].iter().collect();
+                i = j;
+                match name.as_str() {
+                    "frac" => {
+                        let (a, k) = latex_group(&chars, i);
+                        let (b, k2) = latex_group(&chars, k);
+                        out.push_str(&format!("{}/{}", latex_to_text(&a), latex_to_text(&b)));
+                        i = k2;
+                    }
+                    "text" | "mathrm" | "mathbf" | "mathit" | "textbf" | "operatorname" => {
+                        let (a, k) = latex_group(&chars, i);
+                        out.push_str(&latex_to_text(&a));
+                        i = k;
+                    }
+                    "sqrt" => {
+                        let (a, k) = latex_group(&chars, i);
+                        out.push('√');
+                        out.push_str(&latex_to_text(&a));
+                        i = k;
+                    }
+                    _ => {
+                        let (sym, greek) = latex_symbol(&name);
+                        out.push_str(&sym);
+                        if greek && chars.get(i) == Some(&' ') && chars.get(i + 1).is_some_and(|c| c.is_alphanumeric()) {
+                            i += 1;
+                        }
+                    }
+                }
+            }
+            '^' | '_' => {
+                let (a, k) = latex_group(&chars, i + 1);
+                i = k;
+                match (c, a.as_str()) {
+                    ('^', "2") => out.push('²'),
+                    ('^', "3") => out.push('³'),
+                    _ => {
+                        out.push(c);
+                        out.push_str(&latex_to_text(&a));
+                    }
+                }
+            }
+            '{' | '}' => i += 1,
+            _ => {
+                out.push(c);
+                i += 1;
+            }
+        }
+    }
+    out.split_whitespace().collect::<Vec<_>>().join(" ")
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -522,5 +673,21 @@ mod tests {
         assert_eq!(snippet("corto", 300), "corto");
         let s = snippet(&"palabra ".repeat(100), 30);
         assert!(s.chars().count() <= 30 && s.ends_with('…'));
+    }
+
+    #[test]
+    fn plain_math_turns_inline_latex_into_text() {
+        assert_eq!(plain_math(r"Caída libre: $g = 9,8 \text{ m/s}^2$ [1]."), "Caída libre: g = 9,8 m/s² [1].");
+        assert_eq!(plain_math("Velocidad media ($v$): desplazamiento"), "Velocidad media (v): desplazamiento");
+        assert_eq!(plain_math(r"- $F = m \cdot a$"), "- F = m · a");
+        assert_eq!(plain_math(r"$v_{media} = \frac{\Delta x}{\Delta t}$"), "v_media = Δx/Δt");
+        assert_eq!(plain_math(r"$$E = m c^{2}$$"), "E = m c²");
+    }
+
+    #[test]
+    fn plain_math_leaves_money_and_plain_text_alone() {
+        for s in ["Cuesta $5 y $10.", "Sin fórmulas [1].", "Precio: 3 $ por kilo"] {
+            assert_eq!(plain_math(s), s);
+        }
     }
 }

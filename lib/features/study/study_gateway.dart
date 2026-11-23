@@ -7,6 +7,8 @@ import '../ai/ai_gateway.dart' show noAutoRetry;
 /// Acceso a la API de materiales de estudio de Rust. Sustituible en pruebas con
 /// [studyGatewayProvider].
 abstract interface class StudyGateway {
+  /// Técnicas de estudio del catálogo de Rust (síncrono: datos fijos).
+  List<StudySkillInfo> listSkills();
   Future<List<StudyItemSummary>> listItems({String? noteId});
   Future<StudyItem> getItem(String id);
   Future<StudyItem> updateItem(String id, {required String title, required String contentJson});
@@ -22,6 +24,9 @@ abstract interface class StudyGateway {
 
 class FrbStudyGateway implements StudyGateway {
   const FrbStudyGateway();
+
+  @override
+  List<StudySkillInfo> listSkills() => study.listStudySkills();
 
   @override
   Future<List<StudyItemSummary>> listItems({String? noteId}) => study.listStudyItems(noteId: noteId);
@@ -49,6 +54,9 @@ class FrbStudyGateway implements StudyGateway {
 }
 
 final studyGatewayProvider = Provider<StudyGateway>((ref) => const FrbStudyGateway());
+
+/// Catálogo de técnicas de estudio (nombre, sección, icono).
+final studySkillsProvider = Provider<List<StudySkillInfo>>((ref) => ref.watch(studyGatewayProvider).listSkills());
 
 /// Contador de cambios en materiales de estudio (generar, editar, borrar, guardar intentos).
 class StudyRevision extends Notifier<int> {

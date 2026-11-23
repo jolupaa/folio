@@ -15,7 +15,7 @@ Notas al estilo Apple Notes + herramientas de estudio inspiradas en NotebookLM, 
 │ │              papelera, adjuntos, PDF, imágenes, pizarras, búsqueda FTS5    │
 │ └─ folio_ai:   indexador en 2º plano, fragmentación, embeddings,            │
 │                recuperación híbrida (BM25 + vectores, RRF), llama.cpp,      │
-│                conversación con citas, estudio, gestor de modelos           │
+│                conversación con citas, estudio, técnicas (skills), modelos  │
 ├──────────── MethodChannel 'folio/native' (plugin packages/folio_native) ────┤
 │ iOS (Swift): Apple Vision OCR · PDFKit · VisionKit (escáner)                │
 │ Android (Kotlin): ML Kit Text Recognition v2 (bundled) · PdfRenderer        │
@@ -48,7 +48,7 @@ SQLite en `<Application Support>/folio.sqlite3`, versionado con `PRAGMA user_ver
 SQL en `rust/crates/folio_core/migrations/`. Tablas: `folders` (árbol), `notes` (texto y pizarra;
 borrado lógico), `attachments` + `attachment_pages` (texto por página y vínculo con la imagen
 original), `boards`, `search_docs` + `search_fts` (FTS5), `chunks` + `chunks_fts` +
-`chunk_embeddings` + `index_state` (RAG), `study_items`, `quiz_attempts`, `chat_threads`/`messages`,
+`chunk_embeddings` + `index_state` (RAG), `study_items` (con `skill` para las técnicas), `quiz_attempts`, `chat_threads`/`messages`,
 `models`, `settings`.
 
 ## Flujos clave
@@ -63,5 +63,9 @@ original), `boards`, `search_docs` + `search_fts` (FTS5), `chunks` + `chunks_fts
    instalado. Cada pregunta recupera fragmentos en modo híbrido dentro del ámbito, los numera [n]
    en el prompt, genera con llama.cpp en streaming y valida las citas. Si no hay evidencia
    suficiente, lo indica sin inventar.
-4. **Sin modelo**: notas, carpetas, búsqueda, OCR y pizarra funcionan igual. La IA muestra el
+4. **Técnicas de estudio**: `folio_ai::skills` es un catálogo en Rust (Explícamelo fácil, Notas
+   Cornell, Chuleta de examen). Cada entrada condensa una *Agent Skill* pública en un prompt corto
+   (≤ 700 caracteres) y genera Markdown con citas por la misma ruta que los resúmenes. Flutter lee el
+   catálogo con `list_study_skills()`; añadir una técnica es añadir una entrada (sin migración).
+5. **Sin modelo**: notas, carpetas, búsqueda, OCR y pizarra funcionan igual. La IA muestra el
    estado «modelo no instalado» o «dispositivo no compatible».

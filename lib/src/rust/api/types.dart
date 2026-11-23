@@ -149,8 +149,7 @@ class AppInfo {
   });
 
   @override
-  int get hashCode =>
-      dataDir.hashCode ^ schemaVersion.hashCode ^ firstRun.hashCode ^ purgedTrashItems.hashCode;
+  int get hashCode => dataDir.hashCode ^ schemaVersion.hashCode ^ firstRun.hashCode ^ purgedTrashItems.hashCode;
 
   @override
   bool operator ==(Object other) =>
@@ -419,8 +418,7 @@ class ChatThreadSummary {
   });
 
   @override
-  int get hashCode =>
-      id.hashCode ^ title.hashCode ^ scopeLabel.hashCode ^ messageCount.hashCode ^ updatedAt.hashCode;
+  int get hashCode => id.hashCode ^ title.hashCode ^ scopeLabel.hashCode ^ messageCount.hashCode ^ updatedAt.hashCode;
 
   @override
   bool operator ==(Object other) =>
@@ -1066,12 +1064,7 @@ class OcrPageInput {
 
   @override
   int get hashCode =>
-      imagePath.hashCode ^
-      text.hashCode ^
-      engine.hashCode ^
-      confidence.hashCode ^
-      lines.hashCode ^
-      edited.hashCode;
+      imagePath.hashCode ^ text.hashCode ^ engine.hashCode ^ confidence.hashCode ^ lines.hashCode ^ edited.hashCode;
 
   @override
   bool operator ==(Object other) =>
@@ -1206,11 +1199,7 @@ class ScopeSummary {
 
   @override
   int get hashCode =>
-      label.hashCode ^
-      noteCount.hashCode ^
-      chunkCount.hashCode ^
-      embeddedChunkCount.hashCode ^
-      pendingNotes.hashCode;
+      label.hashCode ^ noteCount.hashCode ^ chunkCount.hashCode ^ embeddedChunkCount.hashCode ^ pendingNotes.hashCode;
 
   @override
   bool operator ==(Object other) =>
@@ -1375,11 +1364,7 @@ class StorageInfo {
 
   @override
   int get hashCode =>
-      freeBytes.hashCode ^
-      totalBytes.hashCode ^
-      databaseBytes.hashCode ^
-      filesBytes.hashCode ^
-      modelsBytes.hashCode;
+      freeBytes.hashCode ^ totalBytes.hashCode ^ databaseBytes.hashCode ^ filesBytes.hashCode ^ modelsBytes.hashCode;
 
   @override
   bool operator ==(Object other) =>
@@ -1396,6 +1381,9 @@ class StorageInfo {
 class StudyItem {
   final String id;
   final StudyKind kind;
+
+  /// Id de la técnica (solo con `StudyKind::Skill`).
+  final String? skill;
   final String title;
   final AiScope scope;
   final String scopeLabel;
@@ -1410,6 +1398,7 @@ class StudyItem {
   const StudyItem({
     required this.id,
     required this.kind,
+    this.skill,
     required this.title,
     required this.scope,
     required this.scopeLabel,
@@ -1424,6 +1413,7 @@ class StudyItem {
   int get hashCode =>
       id.hashCode ^
       kind.hashCode ^
+      skill.hashCode ^
       title.hashCode ^
       scope.hashCode ^
       scopeLabel.hashCode ^
@@ -1440,6 +1430,7 @@ class StudyItem {
           runtimeType == other.runtimeType &&
           id == other.id &&
           kind == other.kind &&
+          skill == other.skill &&
           title == other.title &&
           scope == other.scope &&
           scopeLabel == other.scopeLabel &&
@@ -1453,6 +1444,9 @@ class StudyItem {
 class StudyItemSummary {
   final String id;
   final StudyKind kind;
+
+  /// Id de la técnica (solo con `StudyKind::Skill`).
+  final String? skill;
   final String title;
   final String scopeLabel;
   final int sourceCount;
@@ -1465,6 +1459,7 @@ class StudyItemSummary {
   const StudyItemSummary({
     required this.id,
     required this.kind,
+    this.skill,
     required this.title,
     required this.scopeLabel,
     required this.sourceCount,
@@ -1477,6 +1472,7 @@ class StudyItemSummary {
   int get hashCode =>
       id.hashCode ^
       kind.hashCode ^
+      skill.hashCode ^
       title.hashCode ^
       scopeLabel.hashCode ^
       sourceCount.hashCode ^
@@ -1491,6 +1487,7 @@ class StudyItemSummary {
           runtimeType == other.runtimeType &&
           id == other.id &&
           kind == other.kind &&
+          skill == other.skill &&
           title == other.title &&
           scopeLabel == other.scopeLabel &&
           sourceCount == other.sourceCount &&
@@ -1499,7 +1496,16 @@ class StudyItemSummary {
           updatedAt == other.updatedAt;
 }
 
-enum StudyKind { summary, outline, keyConcepts, flashcards, quiz }
+enum StudyKind {
+  summary,
+  outline,
+  keyConcepts,
+  flashcards,
+  quiz,
+
+  /// Técnica de estudio del catálogo; el id va en `skill`.
+  skill,
+}
 
 class StudyOptions {
   final DetailLevel detail;
@@ -1509,10 +1515,13 @@ class StudyOptions {
   final QuizMix quizMix;
   final String? title;
 
-  const StudyOptions({required this.detail, required this.count, required this.quizMix, this.title});
+  /// Id de la técnica (obligatorio con `StudyKind::Skill`).
+  final String? skill;
+
+  const StudyOptions({required this.detail, required this.count, required this.quizMix, this.title, this.skill});
 
   @override
-  int get hashCode => detail.hashCode ^ count.hashCode ^ quizMix.hashCode ^ title.hashCode;
+  int get hashCode => detail.hashCode ^ count.hashCode ^ quizMix.hashCode ^ title.hashCode ^ skill.hashCode;
 
   @override
   bool operator ==(Object other) =>
@@ -1522,7 +1531,44 @@ class StudyOptions {
           detail == other.detail &&
           count == other.count &&
           quizMix == other.quizMix &&
-          title == other.title;
+          title == other.title &&
+          skill == other.skill;
+}
+
+/// Técnica de estudio del catálogo (`list_study_skills`).
+class StudySkillInfo {
+  /// Id estable (se guarda con el material).
+  final String id;
+  final String name;
+
+  /// Encabezado plural en la lista de materiales.
+  final String section;
+  final String description;
+
+  /// Nombre lógico del icono.
+  final String icon;
+
+  const StudySkillInfo({
+    required this.id,
+    required this.name,
+    required this.section,
+    required this.description,
+    required this.icon,
+  });
+
+  @override
+  int get hashCode => id.hashCode ^ name.hashCode ^ section.hashCode ^ description.hashCode ^ icon.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is StudySkillInfo &&
+          runtimeType == other.runtimeType &&
+          id == other.id &&
+          name == other.name &&
+          section == other.section &&
+          description == other.description &&
+          icon == other.icon;
 }
 
 /// Coincidencia en texto, en unidades UTF-16 (compatibles con `String` de Dart).

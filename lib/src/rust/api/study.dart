@@ -9,19 +9,20 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 
 import 'types.dart';
 
+/// Técnicas de estudio disponibles, en el orden en que se muestran.
+List<StudySkillInfo> listStudySkills() => RustLib.instance.api.crateApiStudyListStudySkills();
+
 /// Materiales de estudio; si `note_id` es Some, solo los que usan esa nota como fuente.
 Future<List<StudyItemSummary>> listStudyItems({String? noteId}) =>
     RustLib.instance.api.crateApiStudyListStudyItems(noteId: noteId);
 
-Future<StudyItem> getStudyItem({required String id}) =>
-    RustLib.instance.api.crateApiStudyGetStudyItem(id: id);
+Future<StudyItem> getStudyItem({required String id}) => RustLib.instance.api.crateApiStudyGetStudyItem(id: id);
 
 /// Edición manual (título y contenido JSON validado según el tipo).
 Future<StudyItem> updateStudyItem({required String id, required String title, required String contentJson}) =>
     RustLib.instance.api.crateApiStudyUpdateStudyItem(id: id, title: title, contentJson: contentJson);
 
-Future<void> deleteStudyItem({required String id}) =>
-    RustLib.instance.api.crateApiStudyDeleteStudyItem(id: id);
+Future<void> deleteStudyItem({required String id}) => RustLib.instance.api.crateApiStudyDeleteStudyItem(id: id);
 
 Future<QuizAttempt> saveQuizAttempt({
   required String studyId,

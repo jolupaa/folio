@@ -39,7 +39,7 @@ flutter_rust_bridge::frb_generated_boilerplate!(
     default_rust_auto_opaque = RustAutoOpaqueMoi,
 );
 pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_VERSION: &str = "2.13.0";
-pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_CONTENT_HASH: i32 = 456500026;
+pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_CONTENT_HASH: i32 = 13260351;
 
 // Section: executor
 
@@ -1489,6 +1489,35 @@ fn wire__crate__api__study__list_study_items_impl(
                     })(),
                 )
             }
+        },
+    )
+}
+fn wire__crate__api__study__list_study_skills_impl(
+    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
+    rust_vec_len_: i32,
+    data_len_: i32,
+) -> flutter_rust_bridge::for_generated::WireSyncRust2DartSse {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_sync::<flutter_rust_bridge::for_generated::SseCodec, _>(
+        flutter_rust_bridge::for_generated::TaskInfo {
+            debug_name: "list_study_skills",
+            port: None,
+            mode: flutter_rust_bridge::for_generated::FfiCallMode::Sync,
+        },
+        move || {
+            let message = unsafe {
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
+                    ptr_,
+                    rust_vec_len_,
+                    data_len_,
+                )
+            };
+            let mut deserializer =
+                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            deserializer.end();
+            transform_result_sse::<_, ()>((move || {
+                let output_ok = Ok::<_, ()>(crate::api::study::list_study_skills())?;
+                std::result::Result::Ok(output_ok)
+            })())
         },
     )
 }
@@ -3156,6 +3185,20 @@ impl SseDecode for Vec<crate::api::types::StudyItemSummary> {
     }
 }
 
+impl SseDecode for Vec<crate::api::types::StudySkillInfo> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut len_ = <i32>::sse_decode(deserializer);
+        let mut ans_ = Vec::with_capacity(len_ as usize);
+        for idx_ in 0..len_ {
+            ans_.push(<crate::api::types::StudySkillInfo>::sse_decode(
+                deserializer,
+            ));
+        }
+        return ans_;
+    }
+}
+
 impl SseDecode for Vec<crate::api::types::TextMatch> {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
@@ -3658,6 +3701,7 @@ impl SseDecode for crate::api::types::StudyItem {
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
         let mut var_id = <String>::sse_decode(deserializer);
         let mut var_kind = <crate::api::types::StudyKind>::sse_decode(deserializer);
+        let mut var_skill = <Option<String>>::sse_decode(deserializer);
         let mut var_title = <String>::sse_decode(deserializer);
         let mut var_scope = <crate::api::types::AiScope>::sse_decode(deserializer);
         let mut var_scopeLabel = <String>::sse_decode(deserializer);
@@ -3669,6 +3713,7 @@ impl SseDecode for crate::api::types::StudyItem {
         return crate::api::types::StudyItem {
             id: var_id,
             kind: var_kind,
+            skill: var_skill,
             title: var_title,
             scope: var_scope,
             scope_label: var_scopeLabel,
@@ -3686,6 +3731,7 @@ impl SseDecode for crate::api::types::StudyItemSummary {
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
         let mut var_id = <String>::sse_decode(deserializer);
         let mut var_kind = <crate::api::types::StudyKind>::sse_decode(deserializer);
+        let mut var_skill = <Option<String>>::sse_decode(deserializer);
         let mut var_title = <String>::sse_decode(deserializer);
         let mut var_scopeLabel = <String>::sse_decode(deserializer);
         let mut var_sourceCount = <u32>::sse_decode(deserializer);
@@ -3695,6 +3741,7 @@ impl SseDecode for crate::api::types::StudyItemSummary {
         return crate::api::types::StudyItemSummary {
             id: var_id,
             kind: var_kind,
+            skill: var_skill,
             title: var_title,
             scope_label: var_scopeLabel,
             source_count: var_sourceCount,
@@ -3715,6 +3762,7 @@ impl SseDecode for crate::api::types::StudyKind {
             2 => crate::api::types::StudyKind::KeyConcepts,
             3 => crate::api::types::StudyKind::Flashcards,
             4 => crate::api::types::StudyKind::Quiz,
+            5 => crate::api::types::StudyKind::Skill,
             _ => unreachable!("Invalid variant for StudyKind: {}", inner),
         };
     }
@@ -3727,11 +3775,31 @@ impl SseDecode for crate::api::types::StudyOptions {
         let mut var_count = <u32>::sse_decode(deserializer);
         let mut var_quizMix = <crate::api::types::QuizMix>::sse_decode(deserializer);
         let mut var_title = <Option<String>>::sse_decode(deserializer);
+        let mut var_skill = <Option<String>>::sse_decode(deserializer);
         return crate::api::types::StudyOptions {
             detail: var_detail,
             count: var_count,
             quiz_mix: var_quizMix,
             title: var_title,
+            skill: var_skill,
+        };
+    }
+}
+
+impl SseDecode for crate::api::types::StudySkillInfo {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut var_id = <String>::sse_decode(deserializer);
+        let mut var_name = <String>::sse_decode(deserializer);
+        let mut var_section = <String>::sse_decode(deserializer);
+        let mut var_description = <String>::sse_decode(deserializer);
+        let mut var_icon = <String>::sse_decode(deserializer);
+        return crate::api::types::StudySkillInfo {
+            id: var_id,
+            name: var_name,
+            section: var_section,
+            description: var_description,
+            icon: var_icon,
         };
     }
 }
@@ -3883,35 +3951,35 @@ fn pde_ffi_dispatcher_primary_impl(
         38 => wire__crate__api__library__list_notes_impl(port, ptr, rust_vec_len, data_len),
         39 => wire__crate__api__study__list_quiz_attempts_impl(port, ptr, rust_vec_len, data_len),
         40 => wire__crate__api__study__list_study_items_impl(port, ptr, rust_vec_len, data_len),
-        41 => wire__crate__api__ai__list_threads_impl(port, ptr, rust_vec_len, data_len),
-        42 => wire__crate__api__library__list_trash_impl(port, ptr, rust_vec_len, data_len),
-        43 => wire__crate__api__library__move_folder_impl(port, ptr, rust_vec_len, data_len),
-        44 => wire__crate__api__library__move_note_impl(port, ptr, rust_vec_len, data_len),
-        45 => {
+        42 => wire__crate__api__ai__list_threads_impl(port, ptr, rust_vec_len, data_len),
+        43 => wire__crate__api__library__list_trash_impl(port, ptr, rust_vec_len, data_len),
+        44 => wire__crate__api__library__move_folder_impl(port, ptr, rust_vec_len, data_len),
+        45 => wire__crate__api__library__move_note_impl(port, ptr, rust_vec_len, data_len),
+        46 => {
             wire__crate__api__models__pause_model_download_impl(port, ptr, rust_vec_len, data_len)
         }
-        46 => wire__crate__api__attachments__process_image_impl(port, ptr, rust_vec_len, data_len),
-        47 => wire__crate__api__ai__reindex_all_impl(port, ptr, rust_vec_len, data_len),
-        48 => wire__crate__api__ai__release_ai_memory_impl(port, ptr, rust_vec_len, data_len),
-        49 => wire__crate__api__library__rename_folder_impl(port, ptr, rust_vec_len, data_len),
-        50 => wire__crate__api__ai__rename_thread_impl(port, ptr, rust_vec_len, data_len),
-        51 => wire__crate__api__library__restore_from_trash_impl(port, ptr, rust_vec_len, data_len),
-        52 => wire__crate__api__boards__save_board_impl(port, ptr, rust_vec_len, data_len),
-        53 => wire__crate__api__library__save_note_impl(port, ptr, rust_vec_len, data_len),
-        54 => wire__crate__api__study__save_quiz_attempt_impl(port, ptr, rust_vec_len, data_len),
-        55 => wire__crate__api__search__search_impl(port, ptr, rust_vec_len, data_len),
-        56 => wire__crate__api__models__set_active_llm_impl(port, ptr, rust_vec_len, data_len),
-        57 => wire__crate__api__library__set_note_pinned_impl(port, ptr, rust_vec_len, data_len),
-        58 => wire__crate__api__attachments__set_page_ocr_impl(port, ptr, rust_vec_len, data_len),
-        59 => wire__crate__api__app__set_setting_impl(port, ptr, rust_vec_len, data_len),
-        60 => wire__crate__api__app__storage_info_impl(port, ptr, rust_vec_len, data_len),
-        61 => wire__crate__api__library__trash_folder_impl(port, ptr, rust_vec_len, data_len),
-        62 => wire__crate__api__library__trash_note_impl(port, ptr, rust_vec_len, data_len),
-        63 => {
+        47 => wire__crate__api__attachments__process_image_impl(port, ptr, rust_vec_len, data_len),
+        48 => wire__crate__api__ai__reindex_all_impl(port, ptr, rust_vec_len, data_len),
+        49 => wire__crate__api__ai__release_ai_memory_impl(port, ptr, rust_vec_len, data_len),
+        50 => wire__crate__api__library__rename_folder_impl(port, ptr, rust_vec_len, data_len),
+        51 => wire__crate__api__ai__rename_thread_impl(port, ptr, rust_vec_len, data_len),
+        52 => wire__crate__api__library__restore_from_trash_impl(port, ptr, rust_vec_len, data_len),
+        53 => wire__crate__api__boards__save_board_impl(port, ptr, rust_vec_len, data_len),
+        54 => wire__crate__api__library__save_note_impl(port, ptr, rust_vec_len, data_len),
+        55 => wire__crate__api__study__save_quiz_attempt_impl(port, ptr, rust_vec_len, data_len),
+        56 => wire__crate__api__search__search_impl(port, ptr, rust_vec_len, data_len),
+        57 => wire__crate__api__models__set_active_llm_impl(port, ptr, rust_vec_len, data_len),
+        58 => wire__crate__api__library__set_note_pinned_impl(port, ptr, rust_vec_len, data_len),
+        59 => wire__crate__api__attachments__set_page_ocr_impl(port, ptr, rust_vec_len, data_len),
+        60 => wire__crate__api__app__set_setting_impl(port, ptr, rust_vec_len, data_len),
+        61 => wire__crate__api__app__storage_info_impl(port, ptr, rust_vec_len, data_len),
+        62 => wire__crate__api__library__trash_folder_impl(port, ptr, rust_vec_len, data_len),
+        63 => wire__crate__api__library__trash_note_impl(port, ptr, rust_vec_len, data_len),
+        64 => {
             wire__crate__api__attachments__update_page_text_impl(port, ptr, rust_vec_len, data_len)
         }
-        64 => wire__crate__api__study__update_study_item_impl(port, ptr, rust_vec_len, data_len),
-        65 => wire__crate__api__ai__watch_index_impl(port, ptr, rust_vec_len, data_len),
+        65 => wire__crate__api__study__update_study_item_impl(port, ptr, rust_vec_len, data_len),
+        66 => wire__crate__api__ai__watch_index_impl(port, ptr, rust_vec_len, data_len),
         _ => unreachable!(),
     }
 }
@@ -3926,6 +3994,7 @@ fn pde_ffi_dispatcher_sync_impl(
     match func_id {
         5 => wire__crate__api__ai__cancel_task_impl(ptr, rust_vec_len, data_len),
         18 => wire__crate__api__search__find_in_text_impl(ptr, rust_vec_len, data_len),
+        41 => wire__crate__api__study__list_study_skills_impl(ptr, rust_vec_len, data_len),
         _ => unreachable!(),
     }
 }
@@ -4966,6 +5035,7 @@ impl flutter_rust_bridge::IntoDart for crate::api::types::StudyItem {
         [
             self.id.into_into_dart().into_dart(),
             self.kind.into_into_dart().into_dart(),
+            self.skill.into_into_dart().into_dart(),
             self.title.into_into_dart().into_dart(),
             self.scope.into_into_dart().into_dart(),
             self.scope_label.into_into_dart().into_dart(),
@@ -4992,6 +5062,7 @@ impl flutter_rust_bridge::IntoDart for crate::api::types::StudyItemSummary {
         [
             self.id.into_into_dart().into_dart(),
             self.kind.into_into_dart().into_dart(),
+            self.skill.into_into_dart().into_dart(),
             self.title.into_into_dart().into_dart(),
             self.scope_label.into_into_dart().into_dart(),
             self.source_count.into_into_dart().into_dart(),
@@ -5022,6 +5093,7 @@ impl flutter_rust_bridge::IntoDart for crate::api::types::StudyKind {
             Self::KeyConcepts => 2.into_dart(),
             Self::Flashcards => 3.into_dart(),
             Self::Quiz => 4.into_dart(),
+            Self::Skill => 5.into_dart(),
             _ => unreachable!(),
         }
     }
@@ -5042,6 +5114,7 @@ impl flutter_rust_bridge::IntoDart for crate::api::types::StudyOptions {
             self.count.into_into_dart().into_dart(),
             self.quiz_mix.into_into_dart().into_dart(),
             self.title.into_into_dart().into_dart(),
+            self.skill.into_into_dart().into_dart(),
         ]
         .into_dart()
     }
@@ -5054,6 +5127,30 @@ impl flutter_rust_bridge::IntoIntoDart<crate::api::types::StudyOptions>
     for crate::api::types::StudyOptions
 {
     fn into_into_dart(self) -> crate::api::types::StudyOptions {
+        self
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for crate::api::types::StudySkillInfo {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        [
+            self.id.into_into_dart().into_dart(),
+            self.name.into_into_dart().into_dart(),
+            self.section.into_into_dart().into_dart(),
+            self.description.into_into_dart().into_dart(),
+            self.icon.into_into_dart().into_dart(),
+        ]
+        .into_dart()
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
+    for crate::api::types::StudySkillInfo
+{
+}
+impl flutter_rust_bridge::IntoIntoDart<crate::api::types::StudySkillInfo>
+    for crate::api::types::StudySkillInfo
+{
+    fn into_into_dart(self) -> crate::api::types::StudySkillInfo {
         self
     }
 }
@@ -5695,6 +5792,16 @@ impl SseEncode for Vec<crate::api::types::StudyItemSummary> {
     }
 }
 
+impl SseEncode for Vec<crate::api::types::StudySkillInfo> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <i32>::sse_encode(self.len() as _, serializer);
+        for item in self {
+            <crate::api::types::StudySkillInfo>::sse_encode(item, serializer);
+        }
+    }
+}
+
 impl SseEncode for Vec<crate::api::types::TextMatch> {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
@@ -6097,6 +6204,7 @@ impl SseEncode for crate::api::types::StudyItem {
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
         <String>::sse_encode(self.id, serializer);
         <crate::api::types::StudyKind>::sse_encode(self.kind, serializer);
+        <Option<String>>::sse_encode(self.skill, serializer);
         <String>::sse_encode(self.title, serializer);
         <crate::api::types::AiScope>::sse_encode(self.scope, serializer);
         <String>::sse_encode(self.scope_label, serializer);
@@ -6113,6 +6221,7 @@ impl SseEncode for crate::api::types::StudyItemSummary {
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
         <String>::sse_encode(self.id, serializer);
         <crate::api::types::StudyKind>::sse_encode(self.kind, serializer);
+        <Option<String>>::sse_encode(self.skill, serializer);
         <String>::sse_encode(self.title, serializer);
         <String>::sse_encode(self.scope_label, serializer);
         <u32>::sse_encode(self.source_count, serializer);
@@ -6132,6 +6241,7 @@ impl SseEncode for crate::api::types::StudyKind {
                 crate::api::types::StudyKind::KeyConcepts => 2,
                 crate::api::types::StudyKind::Flashcards => 3,
                 crate::api::types::StudyKind::Quiz => 4,
+                crate::api::types::StudyKind::Skill => 5,
                 _ => {
                     unimplemented!("");
                 }
@@ -6148,6 +6258,18 @@ impl SseEncode for crate::api::types::StudyOptions {
         <u32>::sse_encode(self.count, serializer);
         <crate::api::types::QuizMix>::sse_encode(self.quiz_mix, serializer);
         <Option<String>>::sse_encode(self.title, serializer);
+        <Option<String>>::sse_encode(self.skill, serializer);
+    }
+}
+
+impl SseEncode for crate::api::types::StudySkillInfo {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <String>::sse_encode(self.id, serializer);
+        <String>::sse_encode(self.name, serializer);
+        <String>::sse_encode(self.section, serializer);
+        <String>::sse_encode(self.description, serializer);
+        <String>::sse_encode(self.icon, serializer);
     }
 }
 

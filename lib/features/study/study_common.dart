@@ -31,23 +31,24 @@ Future<bool> saveStudyItem(
 }
 
 /// Línea de metadatos: «Resumen · Física · 12 nov».
-class StudyMetaLine extends StatelessWidget {
+class StudyMetaLine extends ConsumerWidget {
   const StudyMetaLine({super.key, required this.item, this.extra});
 
   final StudyItem item;
   final String? extra;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final display = studyDisplay(item.kind, item.skill, ref.watch(studySkillsProvider));
     final parts = [
-      studyKindLabel(item.kind),
+      display.label,
       if (item.scopeLabel.isNotEmpty) item.scopeLabel,
       ?extra,
       Fmt.relativeDate(item.updatedAt),
     ];
     return Row(
       children: [
-        Icon(studyKindIcon(item.kind), size: 18, color: context.colors.textSecondary),
+        Icon(display.icon, size: 18, color: context.colors.textSecondary),
         const SizedBox(width: Insets.sm),
         Expanded(child: Text(parts.join(' · '), style: context.text.bodySmall)),
       ],

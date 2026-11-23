@@ -152,7 +152,7 @@ sealed class StudyContent with _JsonEquality {
     }
     final map = _asMap(decoded);
     return switch (kind) {
-      StudyKind.summary || StudyKind.outline || StudyKind.keyConcepts => TextContent.fromJson(map),
+      StudyKind.summary || StudyKind.outline || StudyKind.keyConcepts || StudyKind.skill => TextContent.fromJson(map),
       StudyKind.flashcards => FlashcardsContent.fromJson(map),
       StudyKind.quiz => QuizContent.fromJson(map),
     };

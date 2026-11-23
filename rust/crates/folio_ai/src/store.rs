@@ -144,7 +144,7 @@ pub fn validate_content(kind: StudyKind, content_json: &str) -> anyhow::Result<V
     let v: Value = serde_json::from_str(content_json).map_err(|e| anyhow::anyhow!("Contenido no válido: {e}"))?;
     let str_field = |o: &Value, k: &str| o.get(k).and_then(|x| x.as_str()).map(|s| !s.trim().is_empty()).unwrap_or(false);
     match kind {
-        StudyKind::Summary | StudyKind::Outline | StudyKind::KeyConcepts => {
+        StudyKind::Summary | StudyKind::Outline | StudyKind::KeyConcepts | StudyKind::Skill => {
             anyhow::ensure!(v.get("text").and_then(|t| t.as_str()).is_some(), "Falta el texto");
         }
         StudyKind::Flashcards => {
@@ -188,6 +188,7 @@ fn item_count(kind: StudyKind, content: &str) -> u32 {
 pub fn insert_study_item(
     conn: &Connection,
     kind: StudyKind,
+    skill: Option<&str>,
     title: &str,
     scope: &AiScope,
     content: &Value,
@@ -197,8 +198,8 @@ pub fn insert_study_item(
     let id = new_id();
     let now = now_ms();
     conn.execute(
-        "INSERT INTO study_items(id,kind,title,scope,content,model_id,created_at,updated_at) VALUES (?1,?2,?3,?4,?5,?6,?7,?7)",
-        params![id, kind.as_db(), title, serde_json::to_string(scope)?, content.to_string(), model_id, now],
+        "INSERT INTO study_items(id,kind,skill,title,scope,content,model_id,created_at,updated_at) VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?8)",
+        params![id, kind.as_db(), skill, title, serde_json::to_string(scope)?, content.to_string(), model_id, now],
     )?;
     for n in source_note_ids {
         conn.execute("INSERT OR IGNORE INTO study_item_sources(study_id, note_id) VALUES (?1, ?2)", params![id, n])?;
@@ -208,7 +209,7 @@ pub fn insert_study_item(
 
 pub fn list_study_items(conn: &Connection, note_id: Option<&str>) -> anyhow::Result<Vec<StudyItemSummary>> {
     let sql = "SELECT s.id, s.kind, s.title, s.scope, s.content, s.created_at, s.updated_at,
-                 (SELECT count(*) FROM study_item_sources x WHERE x.study_id = s.id)
+                 (SELECT count(*) FROM study_item_sources x WHERE x.study_id = s.id), s.skill
                FROM study_items s
                WHERE ?1 IS NULL OR EXISTS (SELECT 1 FROM study_item_sources x WHERE x.study_id = s.id AND x.note_id = ?1)
                ORDER BY s.updated_at DESC";
@@ -223,16 +224,18 @@ pub fn list_study_items(conn: &Connection, note_id: Option<&str>) -> anyhow::Res
             r.get::<_, i64>(5)?,
             r.get::<_, i64>(6)?,
             r.get::<_, u32>(7)?,
+            r.get::<_, Option<String>>(8)?,
         ))
     })?;
     let mut out = Vec::new();
     for row in rows {
-        let (id, kind, title, scope, content, created_at, updated_at, source_count) = row?;
+        let (id, kind, title, scope, content, created_at, updated_at, source_count, skill) = row?;
         let Some(kind) = StudyKind::from_db(&kind) else { continue };
         let scope_label = serde_json::from_str::<AiScope>(&scope).map(|s| scope_label(conn, &s)).unwrap_or_default();
         out.push(StudyItemSummary {
             id,
             kind,
+            skill,
             title,
             scope_label,
             source_count,
@@ -245,14 +248,15 @@ pub fn list_study_items(conn: &Connection, note_id: Option<&str>) -> anyhow::Res
 }
 
 pub fn get_study_item(conn: &Connection, id: &str) -> anyhow::Result<StudyItem> {
-    let row: Option<(String, String, String, String, Option<String>, i64, i64)> = conn
+    #[allow(clippy::type_complexity)]
+    let row: Option<(String, String, String, String, Option<String>, i64, i64, Option<String>)> = conn
         .query_row(
-            "SELECT kind, title, scope, content, model_id, created_at, updated_at FROM study_items WHERE id = ?1",
+            "SELECT kind, title, scope, content, model_id, created_at, updated_at, skill FROM study_items WHERE id = ?1",
             params![id],
-            |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?, r.get(3)?, r.get(4)?, r.get(5)?, r.get(6)?)),
+            |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?, r.get(3)?, r.get(4)?, r.get(5)?, r.get(6)?, r.get(7)?)),
         )
         .optional()?;
-    let (kind, title, scope, content, model_id, created_at, updated_at) =
+    let (kind, title, scope, content, model_id, created_at, updated_at, skill) =
         row.ok_or_else(|| anyhow::anyhow!("El material de estudio ya no existe"))?;
     let kind = StudyKind::from_db(&kind).ok_or_else(|| anyhow::anyhow!("Tipo de material desconocido"))?;
     let scope: AiScope = serde_json::from_str(&scope).unwrap_or(AiScope { kind: ScopeKind::Library, ids: vec![] });
@@ -277,6 +281,7 @@ pub fn get_study_item(conn: &Connection, id: &str) -> anyhow::Result<StudyItem> 
     Ok(StudyItem {
         id: id.to_string(),
         kind,
+        skill,
         title,
         scope_label: scope_label(conn, &scope),
         scope,

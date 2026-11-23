@@ -3,6 +3,21 @@ use crate::convert::vec;
 use crate::state;
 use folio_ai::store;
 
+/// Técnicas de estudio disponibles, en el orden en que se muestran.
+#[flutter_rust_bridge::frb(sync)]
+pub fn list_study_skills() -> Vec<StudySkillInfo> {
+    folio_ai::skills::SKILLS
+        .iter()
+        .map(|s| StudySkillInfo {
+            id: s.id.into(),
+            name: s.name.into(),
+            section: s.section.into(),
+            description: s.description.into(),
+            icon: s.icon.into(),
+        })
+        .collect()
+}
+
 /// Materiales de estudio; si `note_id` es Some, solo los que usan esa nota como fuente.
 pub fn list_study_items(note_id: Option<String>) -> anyhow::Result<Vec<StudyItemSummary>> {
     Ok(vec(store::list_study_items(&state::get()?.ai.db().read(), note_id.as_deref())?))
