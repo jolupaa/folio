@@ -611,6 +611,7 @@ dependencies = [
  "flutter_rust_bridge",
  "folio_ai",
  "folio_core",
+ "llama-cpp-sys-2",
 ]
 
 [[package]]

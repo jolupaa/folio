@@ -2,7 +2,7 @@
 //! `___isPlatformVersionAtLeast` de la biblioteca de soporte de clang. rustc enlaza la biblioteca
 //! dinámica con `-nodefaultlibs`, así que hay que añadirla a mano.
 
-use std::process::Command;
+use std::{ffi::OsStr, path::PathBuf, process::Command};
 
 fn main() {
     println!("cargo:rerun-if-changed=build.rs");
@@ -39,27 +39,36 @@ fn main() {
 /// cpp-httplib. llama-cpp-sys-2 compila esa biblioteca y no la enlaza: se añade aquí para que
 /// quede dentro de la biblioteca estática.
 fn link_httplib() {
-    let Some(out) = std::env::var_os("OUT_DIR").map(std::path::PathBuf::from) else { return };
-    // OUT_DIR = <target>/<triple>/<perfil>/build/folio_bridge-<hash>/out
-    let Some(build_dir) = out.parent().and_then(|p| p.parent()) else { return };
-    let mut found: Vec<(std::time::SystemTime, std::path::PathBuf)> = Vec::new();
-    if let Ok(entries) = std::fs::read_dir(build_dir) {
-        for e in entries.flatten() {
-            if !e.file_name().to_string_lossy().starts_with("llama-cpp-sys-2-") {
-                continue;
-            }
-            let dir = e.path().join("out/build/vendor/cpp-httplib");
-            if let Ok(meta) = std::fs::metadata(dir.join("libcpp-httplib.a")) {
-                found.push((meta.modified().unwrap_or(std::time::UNIX_EPOCH), dir));
-            }
+    let out = PathBuf::from(std::env::var_os("OUT_DIR").expect("Cargo debe proporcionar OUT_DIR"));
+    // Cargo usa build/<paquete>-<hash>/out o build/<paquete>/<hash>/out.
+    let build_dir = out
+        .ancestors()
+        .find(|path| path.file_name() == Some(OsStr::new("build")))
+        .expect("no se encontró el directorio de compilación de Cargo");
+    let mut dependency_dirs = Vec::new();
+    for entry in std::fs::read_dir(build_dir).into_iter().flatten().flatten() {
+        let name = entry.file_name();
+        if name == "llama-cpp-sys-2" {
+            dependency_dirs.extend(
+                std::fs::read_dir(entry.path())
+                    .into_iter()
+                    .flatten()
+                    .flatten()
+                    .map(|entry| entry.path()),
+            );
+        } else if name.to_string_lossy().starts_with("llama-cpp-sys-2-") {
+            dependency_dirs.push(entry.path());
         }
     }
-    found.sort();
-    match found.pop() {
-        Some((_, dir)) => {
-            println!("cargo:rustc-link-search=native={}", dir.display());
-            println!("cargo:rustc-link-lib=static=cpp-httplib");
-        }
-        None => println!("cargo:warning=no se encontró libcpp-httplib.a de llama.cpp"),
-    }
+
+    let (_, library) = dependency_dirs
+        .into_iter()
+        .map(|dir| dir.join("out/build/vendor/cpp-httplib/libcpp-httplib.a"))
+        .filter_map(|library| Some((library.metadata().ok()?.modified().ok()?, library)))
+        .max()
+        .expect("llama-cpp-sys-2 debe generar libcpp-httplib.a antes de enlazar Folio");
+    let directory = library.parent().expect("cpp-httplib debe estar en un directorio");
+    println!("cargo:rerun-if-changed={}", library.display());
+    println!("cargo:rustc-link-search=native={}", directory.display());
+    println!("cargo:rustc-link-lib=static=cpp-httplib");
 }

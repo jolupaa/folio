@@ -12,6 +12,10 @@ anyhow = "1"
 folio_core = { path = "crates/folio_core" }
 folio_ai = { path = "crates/folio_ai" }
 
+[target.'cfg(target_os = "ios")'.dependencies]
+# Su build script debe terminar antes de enlazar cpp-httplib en el puente.
+llama-cpp-sys-2 = { version = "=0.1.161", default-features = false }
+
 [workspace]
 members = [".", "crates/folio_core", "crates/folio_ai"]
 resolver = "2"
